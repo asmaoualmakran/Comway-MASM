@@ -15,7 +15,7 @@ gridHeight	equ 10
 gridSize 	equ gridWidth * gridHeight
 ;---------------------------------------
 
-; Author: Asma Oualmakran
+		; Author: Asma Oualmakran
 		;Function: Index
 		;Parameters: 
 			;x: 
@@ -60,24 +60,8 @@ gridSize 	equ gridWidth * gridHeight
 		ENDP Index
 
 		; Author: Asma Oualmakran
-		; Function: CheckField
-		; Parameters: 
-			; grid 
-				; Type: 2 dimensional array
-			 	; Use: The grid where the states of the cells are defined.
-			 	; Constraint: N/a
-		; Returns: 
-		; Use: Check the states of the cells in the grid.
-
-		;PROC CheckField
-
-		;ENDP CheckField
-
-		; Author: Asma Oualmakran
 		; Function: KillCell
 		; Parameters: 
-			; grid 
-				;
 			; x 
 				; Type: intiger
 				; Use: The x-coordinate of the cell who needs to be killed. 
@@ -86,13 +70,27 @@ gridSize 	equ gridWidth * gridHeight
 				; Type: intiger
 				; Use: The y-coordinate of the cell who needs to be killed. 
 				; Constraint: larger or equal to 0 and smaller than the gridHeight
-		; Returns:
+		; Returns: N/a 
 		; Use: Set the state of a living cell to dead.
 
-	;	PROC KillCell
-		
+		PROC KillCell
+		push ebp
+		mov ebp, esp 
+		push ebx 
+		mov eax, [ebp+8]	; value of the last argument pushed (pm1)
+		mov ebx, [ebp+12]	; value of the first argument pushed (pm2)
 
-	;	ENDP KillCell
+		push ebx
+		push eax 
+		call Index 			; ebx contains the result afther the call
+		mov [gridArray+ebx], 0	;change the contents in the array location to 0
+
+		pop ebx
+		mov esp, ebp
+		pop ebp
+		ret 
+
+		ENDP KillCell
 
 		; Author: Asma Oualmakran
 		; Function: AwakeCell
@@ -110,9 +108,45 @@ gridSize 	equ gridWidth * gridHeight
 		; Returns: N/a 
 		; Use: Set the state of a dead cell to alive.
 
-		;PROC AwakeCell
+		PROC AwakeCell
+		push ebp
+		mov ebp, esp 
+		push ebx 
+		mov eax, [ebp+8]	; value of the last argument pushed (pm1)
+		mov ebx, [ebp+12]	; value of the first argument pushed (pm2)
 
-		;ENDP AwakeCell
+		push ebx
+		push eax 
+		call Index 			; ebx contains the result afther the call
+		mov [gridArray+ebx], 1	;change the contents in the array location to 1
+
+		pop ebx 
+		mov esp, ebp
+		pop ebp
+		ret
+
+		ENDP AwakeCell
+
+		; Author: Asma Oualmakran
+		; Function: CheckField
+		; Parameters: 
+			; grid 
+				; Type: 2 dimensional array
+			 	; Use: The grid where the states of the cells are defined.
+			 	; Constraint: N/a
+		; Returns: 
+		; Use: Check the states of the cells in the grid.
+
+		PROC CheckField
+
+		@@loop:
+
+
+		ENDP CheckField
+
+		
+
+		
 
 		; Author: Asma Oualmakran
 		; Function: StateCell
