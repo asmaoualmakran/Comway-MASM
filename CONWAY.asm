@@ -9,7 +9,7 @@ ASSUME cs:_TEXT,ds:FLAT,es:FLAT,fs:FLAT,gs:FLAT
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 CODESEG
 
-;---------------Variables---------------
+;---------------Variables--------------- variables in this way work 
 gridWidth	equ 10
 gridHeight	equ 10
 gridSize 	equ gridWidth * gridHeight
@@ -45,7 +45,7 @@ gridSize 	equ gridWidth * gridHeight
 		;mov ah, 09h			; print result taken from example hello
 		;mov edx, ebx
 
-		mov edx, 80
+		mov edx, gridWidth  ; the edx contains the charakter that needs to be printed 
 		mov ah, 02h
 		int 21h
 
