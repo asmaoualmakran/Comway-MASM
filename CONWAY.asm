@@ -42,8 +42,11 @@ gridSize 	equ gridWidth * gridHeight
 		mul eax 			; multiply the decremented x value with the row-width
 		add ebx, ecx		; add the y-coordinate you moved before to the ecx register 
 							; result is in ebx (add puts the result in the first operand, so no mov needed to return the value)
-		mov ah, 09h			; print result taken from example hello
-		mov edx, ebx
+		;mov ah, 09h			; print result taken from example hello
+		;mov edx, ebx
+
+		mov edx, 80
+		mov ah, 02h
 		int 21h
 
 		mov eax, 0h	
@@ -177,7 +180,7 @@ start:
         push 5
         push 6
         call Index
-        add esp , 8
+        add esp, 8
 		; Your code comes here
 
 
