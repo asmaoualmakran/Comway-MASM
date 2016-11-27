@@ -3,14 +3,18 @@ P386
 MODEL FLAT, C
 ASSUME cs:_TEXT,ds:FLAT,es:FLAT,fs:FLAT,gs:FLAT
 
-
+; mul val 
+; gaat eax vermenigvuldigen met val (gaat altijd eax vermenigvuldigen met een ander register)
+; en gaat dan als je eax vermenigvuldigd met een getal 
+; de higher bits in eax opslaan en de lower bits in edx dus 32bit * 32bit geeft een 64bit getal
+; als je weet dat je geen 32bit getallen gaat gebruiken, neem dan een kleiner register
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 ; CODE
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 CODESEG
 
 ;---------------Variables--------------- variables in this way work 
-gridWidth	equ 10
+gridWidth	equ 80
 gridHeight	equ 10
 gridSize 	equ gridWidth * gridHeight
 ;---------------------------------------
@@ -29,28 +33,36 @@ gridSize 	equ gridWidth * gridHeight
 		;Returns: An index in the grid_array
 		;Use: Converts the coordinates of the cell into an index in the gridArray (formula: index = (x-1)*row-width+y.
 
+	
+
 		PROC Index
 		push ebp 			; save base pointer (EBP) value on the s tack
 		mov ebp, esp 		; set current stack pointer ( in ESP) as the new base pointer ( in EBP)
 		push ebx 			; save EBX value
-		mov eax , [ebp+8] 	; take the value of LAST pushed argument
-		mov ebx , [ebp+12] 	; take the value of FIRST pushed argument
+		mov ah, 0
+		mov al , [ebp+8] 	; take the value of LAST pushed argument
+		mov bh, 0
+		mov bl , [ebp+12] 	; take the value of FIRST pushed argument
+							; index = (x-1)*gridWidth+y
+							; al contains x-coordinate, bl contains y-coordinate
 
-		mov ecx, ebx 		; mov ebx so you can multiply and the result put in ebx (result of multiplication is in ebx) the y-coordinate is in ebx, so it needs to be moved
-		mov ebx, gridWidth	; use if formula index = (x-1)*row-width+y
-		dec eax 			; decrement the x-coordinate (start counting from 0 in the grid)
-		mul eax 			; multiply the decremented x value with the row-width
-		add ebx, ecx		; add the y-coordinate you moved before to the ecx register 
-							; result is in ebx (add puts the result in the first operand, so no mov needed to return the value)
-		;mov ah, 09h			; print result taken from example hello
-		;mov edx, ebx
+		; here test if values in range
 
-		mov edx, gridWidth  ; the edx contains the charakter that needs to be printed 
+		dec al              ; x-1
+		mov dh, 0			; place gridWidth in register dl
+		mov dl, gridWidth
+		mul dl 				; multiply (x-1) with gridWidth
+		add ax, bx 			; add the result of the multiplication with the y-coordinate
+							; the result is stored in ax
+		mov cx, 48
+		add ax, cx
+		;print the result 
+		mov cx, ax
 		mov ah, 02h
 		int 21h
 
-		mov eax, 0h	
-		int 16h
+		mov eax, 0h
+        int 16h
 
 		pop ebx 			; restore the or iginal EBX value
 		mov esp, ebp 		; restore the or iginal s tack pointer
@@ -77,13 +89,15 @@ gridSize 	equ gridWidth * gridHeight
 		push ebp
 		mov ebp, esp 
 		push ebx 
-		mov eax, [ebp+8]	; value of the last argument pushed (pm1)
+		mov eax, [ebp+8]	; value of the last argument pushed (pm1) y
 		mov ebx, [ebp+12]	; value of the first argument pushed (pm2)
 
 		push ebx
 		push eax 
 		call Index 			; ebx contains the result afther the call
-		mov [gridArray+ebx], 0	;change the contents in the array location to 0
+		
+		mov di, ax			; move the result of the procedure in the right register
+		mov [gridArray+si], 0			; put the value in the array on the right array location
 
 		pop ebx
 		mov esp, ebp
@@ -112,20 +126,46 @@ gridSize 	equ gridWidth * gridHeight
 		push ebp
 		mov ebp, esp 
 		push ebx 
-		mov eax, [ebp+8]	; value of the last argument pushed (pm1)
+		mov eax, [ebp+8]	; value of the last argument pushed (pm1) y
 		mov ebx, [ebp+12]	; value of the first argument pushed (pm2)
 
 		push ebx
 		push eax 
 		call Index 			; ebx contains the result afther the call
-		mov [gridArray+ebx], 1	;change the contents in the array location to 1
+		
+		mov di, ax			; move the result of the procedure in the right register
+		mov [gridArray+si], 1			; put the value in the array on the right array location
 
-		pop ebx 
+		pop ebx
 		mov esp, ebp
 		pop ebp
-		ret
-
+		ret 
 		ENDP AwakeCell
+
+		; Author: Asma Oualmakran
+		; Function: StateCell
+		; Parameters:
+			; grid 
+				;
+			; x 
+				; Type: intiger
+				; Use: The x-coordinate of the cell. 
+				; Constraint: larger or equal to 0 and smaller than the gridWidth
+			; y
+				; Type: intiger
+				; Use: The y-coordinate of the cell. 
+				; Constraint: larger or equal to 0 and smaller than the gridHeight
+		; Returns: State of the cell. 
+		; Use: Get the state of a cell from the grid. 
+
+		PROC StateCell
+		; first get the coordinates
+		; calculate the index 
+		; mov the index to the right register
+		; test on 0 
+		; if zero, return value 0
+		; else return value 1
+		ENDP StateCell
 
 		; Author: Asma Oualmakran
 		; Function: CheckField
@@ -164,9 +204,9 @@ gridSize 	equ gridWidth * gridHeight
 		; Returns: State of the cell. 
 		; Use: Get the state of a cell from the grid. 
 
-		;PROC StateCell
+		PROC StateCell
 
-		;ENDP StateCell
+		ENDP StateCell
 
 		; Author: Asma Oualmakran
 		; Function: IncGeneration
@@ -209,11 +249,14 @@ start:
 
         push ds 						; Put value of DS register on the stack
         pop es 							; And write this value to ES
+        mov ah, 10
+        mov al, 0
+
 
         @@gameloop: 
-        push 5
-        push 6
-        call Index
+        push 10
+        push 10
+        call KillCell
         add esp, 8
 		; Your code comes here
 
@@ -228,6 +271,7 @@ DATASEG
 
 	; Your data comes here
 	gridArray db gridSize dup (0)
+	generation dd 0 				; het tellen van generaties dd -> een intiger of floating point getal 
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 ; STACK
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
