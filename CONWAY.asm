@@ -2,7 +2,7 @@ IDEAL
 P386
 MODEL FLAT, C
 ASSUME cs:_TEXT,ds:FLAT,es:FLAT,fs:FLAT,gs:FLAT
-
+;test
 ; mul val 
 ; gaat eax vermenigvuldigen met val (gaat altijd eax vermenigvuldigen met een ander register)
 ; en gaat dan als je eax vermenigvuldigd met een getal 
