@@ -69,7 +69,7 @@ gridSize 	equ gridWidth * gridHeight
 							; the result is stored in eax
 		
 		;print the result 
-		mov edx, eax 
+
 
 	;	push edx 
 	;	call PrintDigit
@@ -81,7 +81,7 @@ gridSize 	equ gridWidth * gridHeight
         pop edx
         pop ecx
 		pop ebx 			; restore the or iginal EBX value
-		pop eax
+	;	pop eax				; don't pop eax to keep the result, otherwise it will be overwritten
 		mov esp, ebp 		; restore the or iginal s tack pointer
 		pop ebp 			; retrieve the or iginal base pointer
 		ret 				; return to next instruction after the call
@@ -171,7 +171,7 @@ gridSize 	equ gridWidth * gridHeight
 							; sub esp, 8 equals 2 pops
 	
 
-		mov edi, edx			; move the result of the procedure in the right register
+		mov edi, eax			; move the result of the procedure in the right register
 		mov [gridArray+edi], 0			; put the value in the array on the right array location
 		 
 
@@ -215,38 +215,44 @@ gridSize 	equ gridWidth * gridHeight
 		push eax 			; ebx and eax contain the arguments of the function call (passed by the top function)
 		call Index 			; edx contains the result afther the call
 		sub esp, 8			; ather a call pop the arguments form the stack 	
+		
 							; sub esp, 8 equals 2 pops
-	
-		mov edi, edx			; move the result of the procedure in the right register
+		;debug code
+		push eax 
+		call PrintDigit
+		sub esp, 4
+		;end debug
+
+		mov edi, eax			; move the result of the procedure in the right register
 		mov [gridArray+edi], 1			; put the value in the array on the right array location
 
 		
 		;debug code 
-		mov eax, [gridArray+edi]
+	;	mov eax, [gridArray+edi]
 
-		cmp eax, 1
-		je @@print 
-		cmp eax, 0
-		je @@print0
-		jp @@continue
-		@@print: 
-		  mov ah, 09h                     ; AH=09h - Print DOS Message
-        mov edx, offset _msg1           ; DS:EDX -> $ Terminated String
-        int 21h                         ; DOS INT 21h
+	;	cmp eax, 1
+	;	je @@print 
+	;	cmp eax, 0
+	;	je @@print0
+	;	jp @@continue
+	;	@@print: 
+	;	  mov ah, 09h                     ; AH=09h - Print DOS Message
+    ;    mov edx, offset _msg1           ; DS:EDX -> $ Terminated String
+    ;    int 21h                         ; DOS INT 21h
 
-        mov eax, 0h
-        int 16h
-        jp @@continue
+    ;    mov eax, 0h
+    ;    int 16h
+    ;    jp @@continue
 
-        @@print0: 
-		  mov ah, 09h                     ; AH=09h - Print DOS Message
-        mov edx, offset _msg0          ; DS:EDX -> $ Terminated String
-        int 21h                         ; DOS INT 21h
+    ;    @@print0: 
+	;	  mov ah, 09h                     ; AH=09h - Print DOS Message
+    ;    mov edx, offset _msg0          ; DS:EDX -> $ Terminated String
+    ;    int 21h                         ; DOS INT 21h
 
-        mov eax, 0h
-        int 16h
-        jp @@continue
-         @@continue:
+    ;    mov eax, 0h
+    ;    int 16h
+    ;    jp @@continue
+    ;     @@continue:
         ; end debug 
 		 
        
@@ -298,38 +304,39 @@ gridSize 	equ gridWidth * gridHeight
 		sub esp, 8		; pop the arguments form the stack 
 		
 		
-		mov esi, edx 	; mov the returned value to the source index 
+		mov esi, eax 	; mov the returned value to the source index 
 		mov eax, [gridArray+esi] ; mov the value from the array to the register to return the value 
 						; the value of the cell is put in edx to return as result from the function call
 
 	;	mov eax, 0
 
 		;debug code 
-		cmp eax, 1
-		je @@print 
-		cmp eax, 0
-		je @@print0
-		jp @@continue
-		@@print: 
-		  mov ah, 09h                     ; AH=09h - Print DOS Message
-        mov edx, offset _msg1           ; DS:EDX -> $ Terminated String
-        int 21h                         ; DOS INT 21h
+	;	cmp eax, 1
+	;	je @@print 
+	;	cmp eax, 0
+	;	je @@print0
+	;	jp @@continue
+	;	@@print: 
+	;	  mov ah, 09h                     ; AH=09h - Print DOS Message
+    ;    mov edx, offset _msg1           ; DS:EDX -> $ Terminated String
+    ;    int 21h                         ; DOS INT 21h
 
-        mov eax, 0h
-        int 16h
-        jp @@continue
+    ;    mov eax, 0h
+    ;    int 16h
+    ;    jp @@continue
 
-        @@print0: 
-		  mov ah, 09h                     ; AH=09h - Print DOS Message
-        mov edx, offset _msg0          ; DS:EDX -> $ Terminated String
-        int 21h                         ; DOS INT 21h
+    ;    @@print0: 
+	;	  mov ah, 09h                     ; AH=09h - Print DOS Message
+    ;    mov edx, offset _msg0          ; DS:EDX -> $ Terminated String
+    ;    int 21h                         ; DOS INT 21h
 
-        mov eax, 0h
-        int 16h
-        jp @@continue
+    ;    mov eax, 0h
+    ;    int 16h
+    ;    jp @@continue
+    ;     @@continue:
         ; end debug 
 
-        @@continue:
+      
 		pop esi 
 		pop edx 
 		pop ebx 
