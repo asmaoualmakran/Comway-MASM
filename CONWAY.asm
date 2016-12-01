@@ -22,6 +22,48 @@ gridHeight	equ 10
 gridSize 	equ gridWidth * gridHeight
 ;---------------------------------------
 
+PROC PrintDigit
+		push ebp
+		mov ebp, esp 
+		push eax 
+
+		mov cx, 0
+    	mov bx, 10
+		@@loop:
+    	mov dx, 0
+    	div bx                          ;divide by ten
+
+    ; now ax <-- ax/10
+    ;     dx <-- ax % 10
+
+    ; print dx
+    ; this is one digit, which we have to convert to ASCII
+    ; the print routine uses dx and ax, so let's push ax
+    ; onto the stack. we clear dx at the beginning of the
+    ; loop anyway, so we don't care if we much around with it
+
+    	push ax
+    	add dl, '0'                     ;convert dl to ascii otherwise it wont print the value
+
+    	pop ax                          ;restore ax
+    	push dx                         ;digits are in reversed order, must use stack
+    	inc cx                          ;remember how many digits we pushed to stack
+    	cmp ax, 0                       ;if ax is zero, we can quit
+		jnz @@loop
+
+   		 ;cx is already set
+ 	   mov ah, 02h                       ;2 is the function number of output char in the DOS Services.
+		@@popStack:
+    	pop dx                          ;restore digits from last to first
+    	int 21h                         ;calls DOS Services
+    	loop @@popStack
+
+		pop eax 
+		mov esp, ebp 
+		pop ebp
+		ret
+		ENDP PrintDigit
+
 		; Author: Asma Oualmakran
 		;Function: Index
 		;Parameters: 
@@ -98,47 +140,7 @@ gridSize 	equ gridWidth * gridHeight
 		; Returns: N/a 
 		; Use: Print the value of the intiger on the screen. 
 
-		PROC PrintDigit
-		push ebp
-		mov ebp, esp 
-		push eax 
-
-		mov cx, 0
-    	mov bx, 10
-		@@loop:
-    	mov dx, 0
-    	div bx                          ;divide by ten
-
-    ; now ax <-- ax/10
-    ;     dx <-- ax % 10
-
-    ; print dx
-    ; this is one digit, which we have to convert to ASCII
-    ; the print routine uses dx and ax, so let's push ax
-    ; onto the stack. we clear dx at the beginning of the
-    ; loop anyway, so we don't care if we much around with it
-
-    	push ax
-    	add dl, '0'                     ;convert dl to ascii otherwise it wont print the value
-
-    	pop ax                          ;restore ax
-    	push dx                         ;digits are in reversed order, must use stack
-    	inc cx                          ;remember how many digits we pushed to stack
-    	cmp ax, 0                       ;if ax is zero, we can quit
-		jnz @@loop
-
-   		 ;cx is already set
- 	   mov ah, 02h                       ;2 is the function number of output char in the DOS Services.
-		@@popStack:
-    	pop dx                          ;restore digits from last to first
-    	int 21h                         ;calls DOS Services
-    	loop @@popStack
-
-		pop eax 
-		mov esp, ebp 
-		pop ebp
-		ret
-		ENDP PrintDigit
+		
 
 		; Author: Asma Oualmakran
 		; Function: KillCell
@@ -418,6 +420,19 @@ gridSize 	equ gridWidth * gridHeight
 
 		;ENDP InitGeneration
 
+		PROC StartVideo 
+
+		mov ax , 13h ; spe c i f y AH=0 ( s e t video mode) , AL=13h (320x200 )
+		int 10h ; cal l VGA BIOS
+
+		END StartVideo 
+
+		PROC CloseVideo 
+
+		mov ax , 3h ; spe c i f y AH=0 ( s e t video mode) , AL=3h ( t ext )
+		int 10h ; cal l VGA BIOS
+
+		END CloseVideo
 		
 
 ;------------------------------------------------------------------------------
