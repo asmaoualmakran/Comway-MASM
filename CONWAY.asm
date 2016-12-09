@@ -49,7 +49,7 @@ blockColor 	equ 000
 
 ;---------------------------------------
 
-; Asma: Asma Oualmakran 
+; Author: 
 		; Function: PrintDigit
 		; Parameters: 
 			; number
@@ -181,7 +181,8 @@ PROC PrintDigit
 		mov ebp, esp
 		push eax 
 		push ebx 
-
+		push edi
+		push esi 
 
 		mov eax, [ebp+8]     ; contains the x value
 		mov ebx, [ebp+12]	 ; contains the y value 
@@ -191,16 +192,44 @@ PROC PrintDigit
 		call Index 			 ; calculate the location of the element in the array 
 		add esp, 8			 ; the result of it is located in eax
 
-		mov ebx, [gridArray]	; place the element on the location in ebx 
+		xor edi, edi 
+		xor esi, esi 
+		push edi 
+		call PrintDigit
+		sub esp, 4 
+
+		push esi 
+		call PrintDigit
+		sub esp, 4 
+
+		mov eax, ebx 
+	;	xor edi, edi
+	;	push edi 
+	;	call PrintDigit
+	;	add esp, 4
+	;	mov esi, eax  		 ; place the result of Index in esi 
+	;	mov edi, gridArray   ; place the adres of the array in edi 
+	;	mov eax, [edi + esi] ; the first element is on edi, second on edi+4, third on edi+8 ect...
+								; the multiplication with the index is needed to acces the rigt element
+								; base + offset * size (size in bytes)
+
+		mov eax, [gridArray + ebx*4]
+
+
+		;mov ebx, gridArray [edi]	; place the adres of the element in edi 
+		;mov ebx, [edi]
+
 		;--------------
 		;debug 
-		push ebx
-		call PrintDigit
-		add esp,4
+	;	 push eax    ;[] errond zetten maakt niet uit !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	;	 call PrintDigit
+	;	 add esp,4
 		;-------------
 
-		pop eax 
+		pop esi 
+		pop edi 
 		pop ebx 
+		pop eax
 		mov esp, ebp
 		pop ebp
 
@@ -319,7 +348,7 @@ start:
         pop es 							; And write this value to ES
 
 
-		mov eax, 3
+		mov eax, 8
 		mov ebx, 5
 		push ebx ; push the secon argument
 		push eax ; push the first argument
