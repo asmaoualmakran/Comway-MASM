@@ -138,11 +138,11 @@ PROC PrintDigit
 							; eax contains x-coordinate, ebx contains y-coordinate
 
 							; ebx contains the x-value, eax contains the y-value
-		dec ebx 
-		mov edx, eax 		; mov the value of eax to not lose it's value
-		imul ebx, ebx, gridWidth	; multiply the x-value with the gridWidth and place the result back in ebx  
-		add ebx, edx		; the addition of the formula
-		mov eax, ebx 		; mov to the register eax to return the value  
+		dec eax 
+	;	mov edx, eax 		; mov the value of eax to not lose it's value
+		imul eax, eax, gridWidth	; multiply the x-value with the gridWidth and place the result back in ebx  
+		add eax, ebx		; the addition of the formula
+	;	mov eax, ebx 		; mov to the register eax to return the value  
 		  
 
 	;	push esi 
@@ -179,23 +179,30 @@ PROC PrintDigit
 		mov ebp, esp
 		push eax 
 		push ebx 
-		push edi 
-		push esi
 
 
-		mov eax, [ebp+8]
-		mov ebx, [ebp+12]
+		mov eax, [ebp+8]     ; contains the x value
+		mov ebx, [ebp+12]	 ; contains the y value 
 
-		push ebx 		;
+		push ebx 			 ; push argument in opposit order 
 		push eax 
-		call Index
-		add esp, 8
+		call Index 			 ; calculate the location of the element in the array 
+		add esp, 8			 ; the result of it is located in eax
 
-		mov edi, gridArray
+		mov ebx, [gridArray]	; place the element on the location in ebx 
+		;--------------
+		;debug 
+		push ebx
+		call PrintDigit
+		add esp,4
+		;-------------
 
-		add edi, esi 
-		mov edi, 0
+		pop eax 
+		pop ebx 
+		mov esp, ebp
+		pop ebp
 
+		
 		ret
 
 		ENDP KillCell
@@ -311,9 +318,14 @@ start:
 
 		mov eax, 3
 		mov ebx, 5
+		push ebx ; push the secon argument
 		push eax ; push the first argument
-		push ebx ; push the second argument
 		call Index
+		add esp, 8
+
+		push eax
+		push ebx 
+		call KillCell
 		add esp, 8
 	;	mov eax, 4
 	;	mov ebx, 5
@@ -321,9 +333,9 @@ start:
 	;	push ebx 
 	;	call StateCell
 	;	add esp, 8
-		push eax 
-		call PrintDigit
-		add esp, 4
+	;	push eax 
+	;	call PrintDigit
+	;	add esp, 4
 
 	;	push eax 
 	;	push eax 
@@ -355,4 +367,3 @@ DATASEG
 STACK 1000h
 
 END start
-
