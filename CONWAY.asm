@@ -1,3 +1,8 @@
+;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
+; 32-bit Assembly Example
+;
+; Empty asm example.
+;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 IDEAL
 P386
 MODEL FLAT, C
@@ -8,6 +13,24 @@ ASSUME cs:_TEXT,ds:FLAT,es:FLAT,fs:FLAT,gs:FLAT
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 CODESEG
 
+<<<<<<< HEAD
+=======
+;°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°?
+; Entry To ASM Code
+; In:
+;   CS - Code Selector    Base: 00000000h - Limit: 4G
+;   DS - Data Selector    Base: 00000000h - Limit: 4G
+;   ES - PSP Selector     Base: PSP Seg   - Limit: 100h
+;   FS - ?
+;   GS - ?
+;   SS - Data Selector    Base: 00000000h - Limit: 4G
+;   ESP -> STACK segment
+;   Direction Flag - ?
+;   Interrupt Flag - ?
+;
+;   All Other Registers Are Undefined!
+;°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°?
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 
 ; argumenten popen op het einde 
 ; alles naar 32bit 
@@ -19,6 +42,7 @@ CODESEG
 ; RET gaat de adres poppen en naar dat adres jumen 
 ; Na return zijt je aan de volgende instructie na de call, je gaat daar verder doorgaan 
 ;dit is een test
+<<<<<<< HEAD
 ;---------------Macro's--------------- 
 
 gridWidth	equ 10
@@ -55,6 +79,19 @@ white 		equ 15
 ;---------------------------------------
 
 		; Author: 
+=======
+;---------------Variables--------------- variables in this way work 
+gridWidth	equ 10
+gridHeight	equ 10
+gridSize 	equ gridWidth * gridHeight
+blockWidth 	equ 10
+blockHeight equ 10
+blockColor 	equ 000
+
+;---------------------------------------
+
+; Author: 
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 		; Function: PrintDigit
 		; Parameters: 
 			; number
@@ -63,11 +100,17 @@ white 		equ 15
 				; Constraint: It has to be an intiger. 
 		; Returns: N/a 
 		; Use: Print the value of the intiger on the screen. 
+<<<<<<< HEAD
 
 		PROC PrintDigit
 		push ebp
 		mov ebp, esp 
 
+=======
+PROC PrintDigit
+		push ebp
+		mov ebp, esp 
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 		push eax 
 		push ebx 
 		push ecx
@@ -79,6 +122,7 @@ white 		equ 15
 		@@loop:
     	mov edx, 0
     	div ebx                          ;divide by ten
+<<<<<<< HEAD
 	    ; now ax <-- ax/10
 	    ;     dx <-- ax % 10
 
@@ -87,6 +131,19 @@ white 		equ 15
 	    ; the print routine uses dx and ax, so let's push ax
 	    ; onto the stack. we clear dx at the beginning of the
 		; loop anyway, so we don't care if we much around with it
+=======
+
+    	
+
+    ; now ax <-- ax/10
+    ;     dx <-- ax % 10
+
+    ; print dx
+    ; this is one digit, which we have to convert to ASCII
+    ; the print routine uses dx and ax, so let's push ax
+    ; onto the stack. we clear dx at the beginning of the
+    ; loop anyway, so we don't care if we much around with it
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 
     	push eax
     	add dl, '0'                     ;convert dl to ascii otherwise it wont print the value
@@ -98,7 +155,11 @@ white 		equ 15
 		jnz @@loop
 
    		 ;cx is already set
+<<<<<<< HEAD
 		mov ah, 02h                       ;2 is the function number of output char in the DOS Services.
+=======
+ 	   mov ah, 02h                       ;2 is the function number of output char in the DOS Services.
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 		@@popStack:
     	pop edx                          ;restore digits from last to first
     	int 21h                         ;calls DOS Services
@@ -108,10 +169,15 @@ white 		equ 15
     	pop ecx 
     	pop ebx 
 		pop eax 
+<<<<<<< HEAD
 
 		mov esp, ebp 
 		pop ebp
 
+=======
+		mov esp, ebp 
+		pop ebp
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 		ret
 		ENDP PrintDigit
 
@@ -132,6 +198,7 @@ white 		equ 15
 		;Use: Converts the coordinates of the cell into an index in the gridArray (formula: index = (x-1)*row-width+y.
 
 		PROC Index 
+<<<<<<< HEAD
 
 		push ebp 
 		mov ebp, esp
@@ -157,6 +224,41 @@ white 		equ 15
 		pop ebp 			; retrieve the or iginal base pointer
 
 		ret 				; return to next instruction after the call
+=======
+
+		push ebp 
+		mov ebp, esp
+	;	push eax 			; by not saving eax it destroys the value 
+		push ebx 
+		push edx 
+
+
+		mov eax , [ebp+8] 	; take the value of LAST pushed argument
+		mov ebx , [ebp+12] 	; take the value of FIRST pushed argument
+							; index = (x-1)*gridWidth+y
+							; eax contains x-coordinate, ebx contains y-coordinate
+
+							; ebx contains the x-value, eax contains the y-value
+		dec eax 
+	;	mov edx, eax 		; mov the value of eax to not lose it's value
+		imul eax, eax, gridWidth	; multiply the x-value with the gridWidth and place the result back in ebx  
+		add eax, ebx		; the addition of the formula
+	;	mov eax, ebx 		; mov to the register eax to return the value  
+		  
+
+	;	push esi 
+	;	call PrintDigit
+	;	add esp, 4
+
+	;;	pop esi 
+		pop edx
+		pop ebx 
+	;	pop eax 			; we don't pop eax to be able to pass the value outside the function
+		mov esp, ebp 		; restore the or iginal s tack pointer
+		pop ebp 			; retrieve the or iginal base pointer
+		ret 				; return to next instruction after the call
+
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 		ENDP Index 
 
 		; Author: Asma Oualmakran
@@ -169,6 +271,7 @@ white 		equ 15
 			; y
 				; Type: intiger
 				; Use: The y-coordinate of the cell who needs to be killed. 
+<<<<<<< HEAD
 				; Constraint: larger or equal to 0 and smaller than the gridHeight.
 			; cellVal
 					; Type: 
@@ -189,11 +292,142 @@ white 		equ 15
 		mov eax, [ebp+8]     ; contains the x value
 		mov ebx, [ebp+12]	 ; contains the y value 
 		mov edx, [ebp+16]
+=======
+				; Constraint: larger or equal to 0 and smaller than the gridHeight
+		; Returns: N/a 
+		; Use: Set the state of a living cell to dead.
+
+		PROC KillCell
+
+		push ebp 
+		mov ebp, esp
+		push eax 
+		push ebx 
+		push edi
+		
+
+		;-----------------
+		; debug
+	;	xor di, di
+	;	xor edi, edi 
+	;	push edi 
+	;	call PrintDigit
+	;	add esp, 4
+		;----------------
+
+		mov eax, [ebp+8]     ; contains the x value
+		mov ebx, [ebp+12]	 ; contains the y value 
+
+
+		
 
 		push ebx 			 ; push argument in opposit order 
 		push eax 
 		call Index 			 ; calculate the location of the element in the array 
 		add esp, 8			 ; the result of it is located in eax
+
+;--------------------------------------
+;		debug
+
+;		Krijg edi en esi niet op nul
+;
+
+;		xor edi, edi 
+;		xor esi, esi 
+;		push edi 
+;		call PrintDigit
+;		sub esp, 4 
+
+;		push esi 
+;		call PrintDigit
+;		sub esp, 4 
+
+	 
+	;	xor edi, edi
+	;	push edi 
+	;	call PrintDigit
+	;	add esp, 4
+	;	mov edi, eax  		 			; place the result of Index in esi
+	;	push edi 
+	;	call PrintDigit
+	;	add esp, 4
+	;-----------------------------
+
+		mov edi, eax
+		mov [gridArray + edi*4], 0 	; place the adres of the element in edi
+										; the first element is on edi, second on edi+4, third on edi+8 ect...
+										; the multiplication with the index is needed to acces the rigt element
+										; base + offset * size (size in bytes)
+		;-----------------
+		; debug	
+	;	mov eax, [gridArray + edi*4]
+
+	
+	;	push eax 
+	;	call PrintDigit
+	;	add esp, 4
+		
+		;mov gridArray[edi], 0	; place a zero on a specified location
+
+	;------------------
+
+		
+		;--------------
+		;debug 
+	;	 push eax    ;[] errond zetten maakt niet uit !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	;	 call PrintDigit
+	;	 add esp,4
+		;-------------
+
+		
+		pop edi 
+		pop ebx 
+		pop eax
+		mov esp, ebp
+		pop ebp
+
+		
+		ret
+
+		ENDP KillCell
+
+
+		; Author: Asma Oualmakran
+				; Function: AwakeCell
+				; Parameters:
+					; grid 
+						;
+					; x 
+						; Type: intiger
+						; Use: The x-coordinate of the cell who needs to be awakend. 
+						; Constraint: larger or equal to 0 and smaller than the gridWidth
+					; y
+						; Type: intiger
+						; Use: The y-coordinate of the cell who needs to be awakend. 
+						; Constraint: larger or equal to 0 and smaller than the gridHeight
+				; Returns: N/a 
+				; Use: Set the state of a dead cell to alive.
+
+
+		PROC AwakeCell
+
+		push ebp 
+		mov ebp, esp
+		push eax 
+		push ebx 
+		push edi
+		
+
+		mov eax, [ebp+8]     ; contains the x value
+		mov ebx, [ebp+12]	 ; contains the y value 
+	
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
+
+		push ebx 			 ; push argument in opposit order 
+		push eax 
+		call Index 			 ; calculate the location of the element in the array 
+		add esp, 8			 ; the result of it is located in eax
+<<<<<<< HEAD
 
 		mov edi, eax
 		mov [gridArray + edi*4], edx 	; place the adres of the element in edi
@@ -211,6 +445,26 @@ white 		equ 15
 		ret
 		ENDP SetCell
 
+=======
+
+
+
+		mov edi, eax 		 ; place the index of the element in edi
+		mov [gridArray + edi*4], 1 	    ; the first element is on edi, second on edi+4, third on edi+8 ect...
+										; the multiplication with the index is needed to acces the rigt element
+										; base + offset * size (size in bytes)
+	
+
+		pop edi 
+		pop ebx 
+		pop eax
+		mov esp, ebp
+		pop ebp
+
+		ret
+
+		ENDP AwakeCell
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 
 		; Author: Asma Oualmakran
 		; Function: StateCell
@@ -229,6 +483,7 @@ white 		equ 15
 		; Use: Get the state of a cell from the grid. 
 
 		PROC StateCell
+<<<<<<< HEAD
 
 		push ebp 
 		mov ebp, esp
@@ -391,6 +646,45 @@ white 		equ 15
 
 
 	main:
+=======
+
+		push ebp 
+		mov ebp, esp
+	;	push eax 				; we use eax to pass the value of a cell
+		push ebx 
+		push esi
+		
+
+		mov eax, [ebp+8]     ; contains the x value
+		mov ebx, [ebp+12]	 ; contains the y value 
+	
+
+		push ebx 			 ; push argument in opposit order 
+		push eax 
+		call Index 			 ; calculate the location of the element in the array 
+		add esp, 8			 ; the result of it is located in eax
+
+
+
+		mov esi, eax 		 ; place the index of the element in edi
+		mov eax, [gridArray + edi*4] 	    ; the first element is on edi, second on edi+4, third on edi+8 ect...
+										; the multiplication with the index is needed to acces the rigt element
+										; base + offset * size (size in bytes)
+	
+
+		pop esi 
+		pop ebx 
+	;	pop eax
+		mov esp, ebp
+		pop ebp
+
+		ret 
+		ENDP StateCell
+
+
+
+start:
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 
         sti                             ; Set The Interrupt Flag
         cld                             ; Clear The Direction Flag
@@ -398,6 +692,7 @@ white 		equ 15
         push ds 						; Put value of DS register on the stack
         pop es 							; And write this value to ES
 
+<<<<<<< HEAD
         call InitWindow
         
         mov ah,00h 						; these two lines make the code stop here 
@@ -406,6 +701,36 @@ white 		equ 15
  
 
 		call ExitVideo					; you alwas need to call exit video afther you call init 
+=======
+
+		mov eax, 8
+		mov ebx, 5
+		push ebx ; push the secon argument
+		push eax ; push the first argument
+		call Index
+		add esp, 8
+
+		push eax
+		push ebx 
+		call KillCell
+		add esp, 8
+
+		
+	;	mov eax, 4
+	;	mov ebx, 5
+	;	push eax 
+	;	push ebx 
+	;	call StateCell
+	;	add esp, 8
+	;	push eax 
+	;	call PrintDigit
+	;	add esp, 4
+
+	;	push eax 
+	;	push eax 
+	;	call KillCell
+	;	sub esp, 4
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 
         mov eax, 4c00h                  ; AH = 4Ch - Exit To DOS
         int 21h                         ; DOS INT 21h
@@ -417,7 +742,11 @@ white 		equ 15
 DATASEG
 
 	; Your data comes here
+<<<<<<< HEAD
 	gridArray dd gridSize dup (0)	; dd -> 32-bit
+=======
+	gridArray dd gridSize dup (10)	; dd 
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
 	generation dd 0 				; het tellen van generaties dd -> een intiger of floating point getal 
 	colorArray dd 000 				; hier moeten er nog de kleuren in komen  
 
@@ -432,4 +761,8 @@ DATASEG
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 STACK 1000h
 
+<<<<<<< HEAD
 END main
+=======
+END start
+>>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
