@@ -162,7 +162,7 @@ PROC PrintDigit
 		ENDP Index 
 
 		; Author: Asma Oualmakran
-		; Function: KillCell
+		; Function: SetCell
 		; Parameters: 
 			; x 
 				; Type: intiger
@@ -171,94 +171,39 @@ PROC PrintDigit
 			; y
 				; Type: intiger
 				; Use: The y-coordinate of the cell who needs to be killed. 
-				; Constraint: larger or equal to 0 and smaller than the gridHeight
+				; Constraint: larger or equal to 0 and smaller than the gridHeight.
+			; cellVal
+					; Type: 
+					; Use: The value that needs to be given a certain element of the grid.
+					; Constraint: 
 		; Returns: N/a 
 		; Use: Set the state of a living cell to dead.
 
-		PROC KillCell
+		PROC SetCell
 
 		push ebp 
 		mov ebp, esp
 		push eax 
-		push ebx 
+		push ebx
+		push edx  
 		push edi
-		
-
-		;-----------------
-		; debug
-	;	xor di, di
-	;	xor edi, edi 
-	;	push edi 
-	;	call PrintDigit
-	;	add esp, 4
-		;----------------
 
 		mov eax, [ebp+8]     ; contains the x value
 		mov ebx, [ebp+12]	 ; contains the y value 
-
-
-		
+		mov edx, [ebp+16]
 
 		push ebx 			 ; push argument in opposit order 
 		push eax 
 		call Index 			 ; calculate the location of the element in the array 
 		add esp, 8			 ; the result of it is located in eax
 
-;--------------------------------------
-;		debug
-
-;		Krijg edi en esi niet op nul
-;
-
-;		xor edi, edi 
-;		xor esi, esi 
-;		push edi 
-;		call PrintDigit
-;		sub esp, 4 
-
-;		push esi 
-;		call PrintDigit
-;		sub esp, 4 
-
-	 
-	;	xor edi, edi
-	;	push edi 
-	;	call PrintDigit
-	;	add esp, 4
-	;	mov edi, eax  		 			; place the result of Index in esi
-	;	push edi 
-	;	call PrintDigit
-	;	add esp, 4
-	;-----------------------------
-
 		mov edi, eax
-		mov [gridArray + edi*4], 0 	; place the adres of the element in edi
+		mov [gridArray + edi*4], edx 	; place the adres of the element in edi
 										; the first element is on edi, second on edi+4, third on edi+8 ect...
 										; the multiplication with the index is needed to acces the rigt element
 										; base + offset * size (size in bytes)
-		;-----------------
-		; debug	
-	;	mov eax, [gridArray + edi*4]
-
-	
-	;	push eax 
-	;	call PrintDigit
-	;	add esp, 4
-		
-		;mov gridArray[edi], 0	; place a zero on a specified location
-
-	;------------------
-
-		
-		;--------------
-		;debug 
-	;	 push eax    ;[] errond zetten maakt niet uit !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	;	 call PrintDigit
-	;	 add esp,4
-		;-------------
-
-		
 		pop edi 
+		pop edx 
 		pop ebx 
 		pop eax
 		mov esp, ebp
@@ -267,61 +212,8 @@ PROC PrintDigit
 		
 		ret
 
-		ENDP KillCell
+		ENDP SetCell
 
-
-		; Author: Asma Oualmakran
-				; Function: AwakeCell
-				; Parameters:
-					; grid 
-						;
-					; x 
-						; Type: intiger
-						; Use: The x-coordinate of the cell who needs to be awakend. 
-						; Constraint: larger or equal to 0 and smaller than the gridWidth
-					; y
-						; Type: intiger
-						; Use: The y-coordinate of the cell who needs to be awakend. 
-						; Constraint: larger or equal to 0 and smaller than the gridHeight
-				; Returns: N/a 
-				; Use: Set the state of a dead cell to alive.
-
-
-		PROC AwakeCell
-
-		push ebp 
-		mov ebp, esp
-		push eax 
-		push ebx 
-		push edi
-		
-
-		mov eax, [ebp+8]     ; contains the x value
-		mov ebx, [ebp+12]	 ; contains the y value 
-	
-
-		push ebx 			 ; push argument in opposit order 
-		push eax 
-		call Index 			 ; calculate the location of the element in the array 
-		add esp, 8			 ; the result of it is located in eax
-
-
-
-		mov edi, eax 		 ; place the index of the element in edi
-		mov [gridArray + edi*4], 1 	    ; the first element is on edi, second on edi+4, third on edi+8 ect...
-										; the multiplication with the index is needed to acces the rigt element
-										; base + offset * size (size in bytes)
-	
-
-		pop edi 
-		pop ebx 
-		pop eax
-		mov esp, ebp
-		pop ebp
-
-		ret
-
-		ENDP AwakeCell
 
 		; Author: Asma Oualmakran
 		; Function: StateCell
@@ -360,11 +252,9 @@ PROC PrintDigit
 
 
 		mov esi, eax 		 ; place the index of the element in edi
-		mov eax, [gridArray + edi*4] 	    ; the first element is on edi, second on edi+4, third on edi+8 ect...
+		mov eax, [gridArray + esi*4] 	    ; the first element is on edi, second on edi+4, third on edi+8 ect...
 										; the multiplication with the index is needed to acces the rigt element
 										; base + offset * size (size in bytes)
-	
-
 		pop esi 
 		pop ebx 
 	;	pop eax
@@ -390,12 +280,23 @@ start:
 		push ebx ; push the secon argument
 		push eax ; push the first argument
 		call Index
-		add esp, 8
+		sub esp, 8
 
-		push eax
+		mov edx, 30
+		push edx
+		push ebx
+		push eax 
+		call SetCell
+		sub esp, 8
+
 		push ebx 
-		call KillCell
-		add esp, 8
+		push eax 
+		call StateCell
+		sub esp, 8 
+
+		push eax 
+		call PrintDigit
+		sub esp, 4
 
 		
 	;	mov eax, 4
