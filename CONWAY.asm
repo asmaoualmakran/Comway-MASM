@@ -1,8 +1,3 @@
-;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
-; 32-bit Assembly Example
-;
-; Empty asm example.
-;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 IDEAL
 P386
 MODEL FLAT, C
@@ -13,21 +8,6 @@ ASSUME cs:_TEXT,ds:FLAT,es:FLAT,fs:FLAT,gs:FLAT
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 CODESEG
 
-;°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°?
-; Entry To ASM Code
-; In:
-;   CS - Code Selector    Base: 00000000h - Limit: 4G
-;   DS - Data Selector    Base: 00000000h - Limit: 4G
-;   ES - PSP Selector     Base: PSP Seg   - Limit: 100h
-;   FS - ?
-;   GS - ?
-;   SS - Data Selector    Base: 00000000h - Limit: 4G
-;   ESP -> STACK segment
-;   Direction Flag - ?
-;   Interrupt Flag - ?
-;
-;   All Other Registers Are Undefined!
-;°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°?
 
 ; argumenten popen op het einde 
 ; alles naar 32bit 
@@ -39,17 +19,42 @@ CODESEG
 ; RET gaat de adres poppen en naar dat adres jumen 
 ; Na return zijt je aan de volgende instructie na de call, je gaat daar verder doorgaan 
 ;dit is een test
-;---------------Variables--------------- variables in this way work 
+;---------------Macro's--------------- 
+
 gridWidth	equ 10
 gridHeight	equ 10
-gridSize 	equ gridWidth * gridHeight
+gridSize 	equ gridWidth * gridHeight ; the number of elements in the grid = the length of the gridArray
 blockWidth 	equ 10
 blockHeight equ 10
-blockColor 	equ 000
+
+;video Macro's
+bufferAdress equ 0a0000h
+vidBuffSize equ windowHeight * windowWidth ; the length of the videobuffer
+windowWidth equ 320  ; the window width in pixels
+windowHeight equ 200 ; the window height in pixels 
+
+;Color Macro's 
+;colour pallet starts from 0 to 15
+black		equ 0
+darkBlue 	equ 1
+green 		equ 2
+lightBlue 	equ 3
+red 		equ 4
+purple 		equ 5
+orange 		equ 6
+lightGray 	equ 7
+darkGray	equ 8
+bluePurple 	equ 9
+grenBright	equ 10
+blueBright 	equ 11
+ligtRed		equ 12
+lila 		equ 13
+yellow 		equ 14 
+white 		equ 15
 
 ;---------------------------------------
 
-; Author: 
+		; Author: 
 		; Function: PrintDigit
 		; Parameters: 
 			; number
@@ -58,9 +63,11 @@ blockColor 	equ 000
 				; Constraint: It has to be an intiger. 
 		; Returns: N/a 
 		; Use: Print the value of the intiger on the screen. 
-PROC PrintDigit
+
+		PROC PrintDigit
 		push ebp
 		mov ebp, esp 
+
 		push eax 
 		push ebx 
 		push ecx
@@ -72,17 +79,14 @@ PROC PrintDigit
 		@@loop:
     	mov edx, 0
     	div ebx                          ;divide by ten
+	    ; now ax <-- ax/10
+	    ;     dx <-- ax % 10
 
-    	
-
-    ; now ax <-- ax/10
-    ;     dx <-- ax % 10
-
-    ; print dx
-    ; this is one digit, which we have to convert to ASCII
-    ; the print routine uses dx and ax, so let's push ax
-    ; onto the stack. we clear dx at the beginning of the
-    ; loop anyway, so we don't care if we much around with it
+	    ; print dx
+	    ; this is one digit, which we have to convert to ASCII
+	    ; the print routine uses dx and ax, so let's push ax
+	    ; onto the stack. we clear dx at the beginning of the
+		; loop anyway, so we don't care if we much around with it
 
     	push eax
     	add dl, '0'                     ;convert dl to ascii otherwise it wont print the value
@@ -94,7 +98,7 @@ PROC PrintDigit
 		jnz @@loop
 
    		 ;cx is already set
- 	   mov ah, 02h                       ;2 is the function number of output char in the DOS Services.
+		mov ah, 02h                       ;2 is the function number of output char in the DOS Services.
 		@@popStack:
     	pop edx                          ;restore digits from last to first
     	int 21h                         ;calls DOS Services
@@ -104,8 +108,10 @@ PROC PrintDigit
     	pop ecx 
     	pop ebx 
 		pop eax 
+
 		mov esp, ebp 
 		pop ebp
+
 		ret
 		ENDP PrintDigit
 
@@ -129,7 +135,7 @@ PROC PrintDigit
 
 		push ebp 
 		mov ebp, esp
-	;	push eax 			; by not saving eax it destroys the value 
+
 		push ebx 
 		push edx 
 
@@ -141,24 +147,16 @@ PROC PrintDigit
 
 							; ebx contains the x-value, eax contains the y-value
 		dec eax 
-	;	mov edx, eax 		; mov the value of eax to not lose it's value
 		imul eax, eax, gridWidth	; multiply the x-value with the gridWidth and place the result back in ebx  
 		add eax, ebx		; the addition of the formula
-	;	mov eax, ebx 		; mov to the register eax to return the value  
-		  
-
-	;	push esi 
-	;	call PrintDigit
-	;	add esp, 4
-
-	;;	pop esi 
+	
 		pop edx
-		pop ebx 
-	;	pop eax 			; we don't pop eax to be able to pass the value outside the function
+		pop ebx 			; we don't pop eax to be able to pass the value outside the function
+
 		mov esp, ebp 		; restore the or iginal s tack pointer
 		pop ebp 			; retrieve the or iginal base pointer
-		ret 				; return to next instruction after the call
 
+		ret 				; return to next instruction after the call
 		ENDP Index 
 
 		; Author: Asma Oualmakran
@@ -206,12 +204,11 @@ PROC PrintDigit
 		pop edx 
 		pop ebx 
 		pop eax
+
 		mov esp, ebp
 		pop ebp
 
-		
 		ret
-
 		ENDP SetCell
 
 
@@ -235,21 +232,16 @@ PROC PrintDigit
 
 		push ebp 
 		mov ebp, esp
-	;	push eax 				; we use eax to pass the value of a cell
 		push ebx 
 		push esi
 		
-
 		mov eax, [ebp+8]     ; contains the x value
 		mov ebx, [ebp+12]	 ; contains the y value 
 	
-
 		push ebx 			 ; push argument in opposit order 
 		push eax 
 		call Index 			 ; calculate the location of the element in the array 
 		add esp, 8			 ; the result of it is located in eax
-
-
 
 		mov esi, eax 		 ; place the index of the element in edi
 		mov eax, [gridArray + esi*4] 	    ; the first element is on edi, second on edi+4, third on edi+8 ect...
@@ -257,7 +249,7 @@ PROC PrintDigit
 										; base + offset * size (size in bytes)
 		pop esi 
 		pop ebx 
-	;	pop eax
+
 		mov esp, ebp
 		pop ebp
 
@@ -265,8 +257,140 @@ PROC PrintDigit
 		ENDP StateCell
 
 
+		; Author: Asma Oualmakran 
+		; Function: VidIndex 
+		; Parameters: 
+			; x: 
+				; Type: intiger 
+				; Use: x-coordinate of a pixel
+				; Constraint; larger or equal to 0 and smaller or equal to 320 
+			; y:
+				; Type: intiger
+				; Use:  y-coordinate of a pixel 
+				; Constraint; larger or equal to 0 and smaller or equal to 200
+		; Returns: The index of the pixel in the video buffer 
+		
+		PROC VidIndex
 
-start:
+		push ebp 
+		mov ebp, esp 
+		push ebx
+		push edx 
+
+		mov eax, [ebp+8]
+		mov ebx, [ebp+12]
+
+		imul eax, eax, windowWidth	; use eax so the result is put in one register
+		add eax, ebx 				; place the final result in eax 
+									; the result is returned in eax 
+		pop edx 
+		pop ebx 
+		mov esp, ebp 
+		pop ebp 
+
+		ret 
+		ENDP VidIndex
+
+		; Author: Asma Oualmakran
+		; Function: InitVideo 
+		; Parameters: 
+		; Returns: N/a 
+		; Use: Initialize the video mode 
+
+		PROC InitVideo
+		push ebp
+		mov ebp, esp 
+
+		push ax 
+		
+		mov ax , 13h ; specify AH=0 (set video mode) , AL=13h (320x200 )
+		int 10h 	 ; call VGA BIOS
+
+		pop ax 
+
+		mov esp, ebp 
+		pop ebp
+
+		ret 
+		ENDP InitVideo
+
+
+		; Author: Asma Oualmakran
+		; Function: ExitVideo
+		; Parameters: N/a
+		; Returns: N/a 
+		; Use: Return to text mode 
+
+		PROC ExitVideo 
+		push ebp 
+		mov ebp, esp 
+
+		push ax 
+
+		mov ax , 03h ; specify AH=0 (set text mode) , AL=3h (text)
+		int 10h 	 ; call VGA BIOS
+
+		pop ax 
+
+		mov esp, ebp 
+		pop ebp 
+
+		ret
+		ENDP ExitVideo
+
+
+
+		PROC Draw 
+		push ebp 
+		mov ebp, esp 
+
+		push eax 
+		push edi 
+
+		mov edi, bufferAdress
+
+		pop edi
+		pop eax 
+		mov esp, ebp 
+		pop ebp
+
+		ret 
+		ENDP Draw
+
+		; Author: Asma Oualmakran
+		; Function: InitWindow
+		; Parameters: N/a 
+		; Returns: N/a 
+		; Use: Initialize the window, make the background one colour 
+
+		PROC InitWindow 
+		push ebp 
+		mov ebp, esp 
+		push eax 
+		push ecx
+		push edi 
+
+		call InitVideo	; open the video mode 
+		
+
+		mov al, white		; place the color in al 
+		mov ecx, vidBuffSize
+		mov edi, bufferAdress ; the index where stosb needs to start 
+		rep stosb	; loops over the video buffer to set every pixel to a value 
+
+		pop edi 
+		pop ecx 
+		pop eax 
+		mov esp, ebp 
+		pop ebp 
+
+		ret 
+		ENDP InitWindow
+
+	
+
+
+	main:
 
         sti                             ; Set The Interrupt Flag
         cld                             ; Clear The Direction Flag
@@ -274,48 +398,18 @@ start:
         push ds 						; Put value of DS register on the stack
         pop es 							; And write this value to ES
 
+        call InitWindow
+        
+        mov ah,00h 						; these two lines make the code stop here 
+        int 16h							; you stay in video and can go to exit by pressing a key
 
-		mov eax, 8
-		mov ebx, 5
-		push ebx ; push the secon argument
-		push eax ; push the first argument
-		call Index
-		sub esp, 8
+ 
 
-		mov edx, 30
-		push edx
-		push ebx
-		push eax 
-		call SetCell
-		sub esp, 8
-
-		push ebx 
-		push eax 
-		call StateCell
-		sub esp, 8 
-
-		push eax 
-		call PrintDigit
-		sub esp, 4
-
-		
-	;	mov eax, 4
-	;	mov ebx, 5
-	;	push eax 
-	;	push ebx 
-	;	call StateCell
-	;	add esp, 8
-	;	push eax 
-	;	call PrintDigit
-	;	add esp, 4
-
-	;	push eax 
-	;	push eax 
-	;	call KillCell
-	;	sub esp, 4
+		call ExitVideo					; you alwas need to call exit video afther you call init 
 
         mov eax, 4c00h                  ; AH = 4Ch - Exit To DOS
         int 21h                         ; DOS INT 21h
+
 
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 ; DATA
@@ -323,7 +417,7 @@ start:
 DATASEG
 
 	; Your data comes here
-	gridArray dd gridSize dup (10)	; dd 
+	gridArray dd gridSize dup (0)	; dd -> 32-bit
 	generation dd 0 				; het tellen van generaties dd -> een intiger of floating point getal 
 	colorArray dd 000 				; hier moeten er nog de kleuren in komen  
 
@@ -338,4 +432,4 @@ DATASEG
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 STACK 1000h
 
-END start
+END main
