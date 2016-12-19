@@ -25,8 +25,8 @@ CODESEG
 gridWidth	equ 10
 gridHeight	equ 10
 gridSize 	equ gridWidth * gridHeight ; the number of elements in the grid = the length of the gridArray
-blockWidth 	equ 10
-blockHeight equ 10
+blockWidth 	equ 15
+blockHeight equ 15
 
 ;video Macro's
 bufferAdress	equ 0a0000h
@@ -154,9 +154,13 @@ white 		equ 15
 
 		; write if test here to check if the value is out of bounds 
 
-		; apply the formula (x-1)*array_size+y
-		dec eax
-		mul ecx
+		; apply the formula (y-1)*array_size+x
+		; y times the width will give the height in the grid 
+		; we dec y, we start counting from 0, otherwise we put the element 
+		; one location to low on the grid. 
+		
+		dec ebx
+		imul ebx, ecx
 		add eax, ebx  
 
 
@@ -168,6 +172,63 @@ white 		equ 15
 
 		ret
 		ENDP Index
+
+
+; Author: Asma Oualmakran 
+; Function: GetCoordinates 
+; Parameters: 
+	; Index: 
+		; Type: intiger
+		; Use: The index of the element who's coordinates are needed.
+		; Constraint: N/a 
+	; Array: 
+		; Type: Adres 
+		; Used: The adres of the array who containts the element.
+		; Constraint: N/a 
+; Returns: The x-coordinate and the y-coordinate of the selected element 
+; Use: Calculate the coordinates of an element based on the index of the element and the array that contains that element. 
+
+		PROC GetCoordinates
+
+		push ebp 
+		mov ebp, esp 
+
+		push ecx 
+		push edx 
+
+		mov eax, [ebp+8]	; contains the index of the element
+		mov ebx, [ebp+12]	; contains the adres of the array
+
+		push eax ; store value before the call of SetArraySize
+
+		push ebx
+		call SetArraySize
+		add esp, 4 
+
+		mov ecx, eax ; store the returnvalue of the above function in ecx (lenght of the array)
+
+
+		pop eax		 ; restore the value of eax 
+
+;		div ecx 
+
+
+;		push eax 
+;		call PrintDigit
+;		add esp, 4 
+;
+		push edx 
+		call PrintDigit
+		add esp, 4
+
+		pop edx 
+		pop ecx 
+
+		mov esp, ebp
+		pop ebp 
+
+		ret
+		ENDP GetCoordinates
 
 ; Author: Asma Oualmakran 
 ; Function: InBounds 
@@ -301,44 +362,31 @@ white 		equ 15
 
 		PROC GetValue 
  
+ 		; to set the array adres before the call use 
+ 		; lea esi, <array>
 		push ebp 
 		mov ebp, esp 
-				 ; eax containts the index of the element 
-	;	push ecx ; contains the array-length
-		push edx 
+			
+		push edx ; edx containts the index of the element 
 		push esi ; contains the memory adres
 
 		mov edx, [ebp+8]	; index 
 		mov esi, [ebp+12]	; memory adres 
-		
-		; you need to mov the index of eax to ebx
-		; the value will be lost otherwise (or to another register)
-
-
+	
 		push esi 
 		call SetArraySize		; set the size of the array to check the bounds 
-		sub esp, 4
-
+		add esp, 4
 
 		push eax		; contains the array size 
 		push edx 		; contains the index 
 		call InBounds
-		sub esp, 8
-
-		; the index may be overwritten, it's no longer needed 
+		add esp, 8
 
 		cmp eax, 0		; check if the index is in bounds of the array 
-		je @@stop		; if the returnvalue of the boolean is false, jump to the end 
-		
-	
-		add esi, edx 
-		lodsb
+		je @@stop		; if the returnvalue of the boolean is false, jump to the end
 
-		; debug 
-		push eax 
-		call PrintDigit
-		sub esp, 4
-		;--------
+		mov ah, 0
+		mov al, [byte ptr esi+edx]
 
 		@@stop:
 
@@ -375,6 +423,8 @@ white 		equ 15
 
 		PROC SetValue 
  
+ 		; make sure that the value to be set is placed in al 
+ 		; otherwise it is to large to be set in the byte array
 		push ebp 
 		mov ebp, esp 
 		push eax ; containts the value to be set.
@@ -386,25 +436,28 @@ white 		equ 15
 		mov edx, [ebp+12]
 		mov edi, [ebp+16]
 
-		push edi 
+		
 		push eax ; store eax to not overwrite is by the called functions
-				 ; you store it afther edi, so it's on top of the stack and not used by the fuction SetArraySize
+				 ; you store it before edi, so it's on top of the stack and not used by the fuction SetArraySize
+		
+
+		push edi
 		call SetArraySize
-		sub esp, 4 		; eax now containts the array size 
+		add esp, 4 		; eax now containts the array size
 
 		mov ecx, eax 	; mov the array size from eax into ecx 
-		pop eax 		; restore the value of eax to use it for the boolean InBounds
-
+		
 		push ecx 
 		push edx 
 		call InBounds 	; check if the index is in bounds of the array 
-		sub esp, 8 
+		add esp, 8 
 
 		cmp eax, 0		; if it is out of bounds, you stop. 
 		je @@stop
 
-		add edi, edx 	; the value must be stored at array adres + index 
-		stosb 			; save the value from AL into the array 
+		pop eax 		; retore the value of eax 		
+
+		mov [byte ptr edi+edx], al
 
 		@@stop:
 																		
@@ -523,9 +576,24 @@ white 		equ 15
 		push ebp 
 		mov ebp, esp 
 
-		push eax 
-		push ebx 
-		push esi
+		push eax 	; color
+		push ebx 	; index
+		push edi	; adres of the used array 
+
+		mov eax, [ebp+8]
+		mov ebx, [ebp+12]
+		mov edi, [ebp+16]
+
+		; need to draw at index * blockWidth
+		; and y too 
+		mov ebx, 300
+		mov ecx, blockWidth
+		imul ebx, ecx 
+		add ebx, ecx
+		add edi, ebx ; make sure it starts at the right index of the array 
+
+		mov ecx, 20; functions as counter 
+		rep stosb 
 
 		pop esi 
 		pop ebx 
@@ -548,8 +616,61 @@ white 		equ 15
         push ds 						; Put value of DS register on the stack
         pop es 							; And write this value to ES
 
-       ; call InitWindow
-     
+       call InitVideo
+       call InitWindow
+
+       mov eax, black
+     ;  mov bh, 0 
+      ; mov bl, bufferAdress
+       mov edi, bufferAdress
+;
+       mov ebx, 10
+
+       push edi 
+       push ebx 
+       push eax 
+       call DrawSquare
+       add esp, 12
+
+  ;     xor eax, eax 
+ ;      mov ah, 0
+ ;      mov al, 50
+  ;     mov edx, 5
+   ;    lea edi, [gridArray]
+;
+ ;      push edi 
+  ;     push edx 
+   ;    push eax 
+;
+ ;      call SetValue
+  ;     add esp, 12
+   ;  
+  	;	lea esi, [gridArray]
+  	;	mov eax, 5
+
+  ;		mov bh, 0 
+  ;		mov bl, [gridArray]
+  ;		mov eax, 6
+;
+ ; 		push ebx 
+  ;		push eax 
+  ;		call GetCoordinates
+  ;		add esp, 8
+
+    
+  ;    push esi 
+   ;   push eax 
+    ;  call GetValue
+     ; sub esp, 8
+     ;	mov bh, 0
+ 	;	mov bl, offset gridArray
+ ;		lea esi, [gridArray]
+ ;	mov edi, 5
+ ;		mov ah, 0 
+ 	;	mov al, [gridArray]
+ 		
+
+ ;		mov al, [byte ptr esi+edi]
 
 
 
@@ -557,9 +678,10 @@ white 		equ 15
         mov ah,00h 						; these two lines make the code stop here 
         int 16h							; you stay in video and can go to exit by pressing a key
 
+    
  
 
-	;	call ExitVideo					; you alwas need to call exit video afther you call init 
+		call ExitVideo					; you alwas need to call exit video afther you call init 
 
         mov eax, 4c00h                  ; AH = 4Ch - Exit To DOS
         int 21h                         ; DOS INT 21h
@@ -571,9 +693,9 @@ white 		equ 15
 DATASEG
 
 	; Your data comes here
-	gridArray db gridSize dup (0)	; dd -> 32-bit
-									; db -> 8-bit, byte array
-	gridArray2 db gridSize dup (0)	; second array to be able to compare the old data
+	gridArray db gridSize dup (20)	; dd -> 32-bit
+									; db -> 8-bit, byte string
+	gridArray2 db gridSize dup (0)	; second array to be able ;to compare the old data
 	generation dd 0 				; het tellen van generaties dd -> een intiger of floating point getal 
 	colorArray dd 000 				; hier moeten er nog de kleuren in komen  
 
