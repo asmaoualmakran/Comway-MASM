@@ -55,15 +55,15 @@ white 		equ 15
 
 ;---------------------------------------
 
-		; Author: 
-		; Function: PrintDigit
-		; Parameters: 
-			; number
-				; Type: intiger
-				; Use: The intiger that has to be printed.
-				; Constraint: It has to be an intiger. 
-		; Returns: N/a 
-		; Use: Print the value of the intiger on the screen. 
+; Author: http://stackoverflow.com/questions/4244624/print-integer-to-console-in-x86-assembly
+; Function: PrintDigit
+; Parameters: 
+	; number
+		; Type: intiger
+		; Use: The intiger that has to be printed.
+		; Constraint: It has to be an intiger. 
+; Returns: N/a 
+; Use: Print the value of the intiger on the screen. 
 
 		PROC PrintDigit
 		push ebp
@@ -75,41 +75,41 @@ white 		equ 15
 		push edx 
 
 		mov eax, [ebp+8]
-	
+			
 
 		mov ecx, 0
-    	mov ebx, 10
+		mov ebx, 10
 		@@loop:
-    	mov edx, 0
-    	div ebx                          ;divide by ten
-	    ; now ax <-- ax/10
-	    ;     dx <-- ax % 10
+		mov edx, 0
+		div ebx                          ;divide by ten
+		; now ax <-- ax/10
+		;     dx <-- ax % 10
 
-	    ; print dx
-	    ; this is one digit, which we have to convert to ASCII
-	    ; the print routine uses dx and ax, so let's push ax
-	    ; onto the stack. we clear dx at the beginning of the
+		; print dx
+		; this is one digit, which we have to convert to ASCII
+		; the print routine uses dx and ax, so let's push ax
+		; onto the stack. we clear dx at the beginning of the
 		; loop anyway, so we don't care if we much around with it
 
-    	push eax
-    	add dl, '0'                     ;convert dl to ascii otherwise it wont print the value
+		push eax
+		add dl, '0'                     ;convert dl to ascii otherwise it wont print the value
 
-    	pop eax                          ;restore ax
-    	push edx                         ;digits are in reversed order, must use stack
-    	inc ecx                          ;remember how many digits we pushed to stack
-    	cmp eax, 0                       ;if ax is zero, we can quit
+		pop eax                          ;restore ax
+		push edx                         ;digits are in reversed order, must use stack
+		inc ecx                          ;remember how many digits we pushed to stack
+		cmp eax, 0                       ;if ax is zero, we can quit
 		jnz @@loop
 
-   		 ;cx is already set
+		;cx is already set
 		mov ah, 02h                       ;2 is the function number of output char in the DOS Services.
 		@@popStack:
-    	pop edx                          ;restore digits from last to first
-    	int 21h                         ;calls DOS Services
-    	loop @@popStack
+		pop edx                          ;restore digits from last to first
+		int 21h                         ;calls DOS Services
+		loop @@popStack
 
-    	pop edx
-    	pop ecx 
-    	pop ebx 
+		pop edx
+		pop ecx 
+		pop ebx 
 		pop eax 
 
 		mov esp, ebp 
@@ -134,7 +134,7 @@ white 		equ 15
 		; Use: The length of the used array. 
 		; Constraint: N/a 
 ; Returns: An index in an array.
-; Use: Converts the coordinate of an pixel or an cell into an index of the used array (formula: index = (x-1)*array-length+y).
+; Use: Converts the coordinate of an pixel or an cell into an index of the used array (formula: index =  width*y+x.
 
 		PROC Index
 
@@ -142,7 +142,7 @@ white 		equ 15
 		mov ebp, esp 
 		; eax containts the x-coordinate
 		; ebx containts the y-coordinate
-		; ecx containts the width of the array, window ect 
+		; ecx containts the width of the grid or window 
 		; We use eax to pass the return value of this function
 	 
 		push ebx 
@@ -154,12 +154,12 @@ white 		equ 15
 
 		; write if test here to check if the value is out of bounds 
 
-		; apply the formula (y-1)*array_size+x
+		; apply the formula width*y+x
 		; y times the width will give the height in the grid 
 		; we dec y, we start counting from 0, otherwise we put the element 
 		; one location to low on the grid. 
 		
-		dec ebx
+		
 		imul ebx, ecx
 		add eax, ebx  
 
@@ -194,34 +194,38 @@ white 		equ 15
 		mov ebp, esp 
 
 		push ecx 
-		push edx 
 
 		mov eax, [ebp+8]	; contains the index of the element
-		mov ebx, [ebp+12]	; contains the adres of the array
+		mov ecx, [ebp+12]	; contains the width of the grid or the window 
 
-		push eax ; store value before the call of SetArraySize
+		mov edx, 0 			; need to set edx to 0 -> otherwise div will crash
+		cmp eax, ecx
 
-		push ebx
-		call SetArraySize
-		add esp, 4 
+		
+		jl @@widthL 	; if the index is smaller than the width of the grid
+						; you know that the y-coordinate = 0 and x-coordinate = index 
+						; if you don't test it, the code will crash when you try to divide/ modulo 
 
-		mov ecx, eax ; store the returnvalue of the above function in ecx (lenght of the array)
+		div ecx			; this wil store the y-value in eax -> quotient 
+						; and store the x-value in edx -> remainder which is the same as mod 			
+		jmp @@stop		; skip the rest of the code 
 
+		@@widthL:
+		mov edx, eax 	; first move the index into edx, ready to return 
+		mov eax, 0 		; we know that the y-coordinate equals to 0
 
-		pop eax		 ; restore the value of eax 
+		@@stop:
 
-;		div ecx 
-
-
-;		push eax 
-;		call PrintDigit
-;		add esp, 4 
-;
 		push edx 
 		call PrintDigit
 		add esp, 4
+		
+		push eax 
+		call PrintDigit
+		add esp, 4
 
-		pop edx 
+						; the result is returned in eax, edx (eax contains the quotient -> y coordinate, edx contains the remainder
+						; -> restult of mod) it's returned that way by div, no need to change it.
 		pop ecx 
 
 		mov esp, ebp
@@ -229,67 +233,6 @@ white 		equ 15
 
 		ret
 		ENDP GetCoordinates
-
-; Author: Asma Oualmakran 
-; Function: InBounds 
-; Parameters: 
-	; Index: 
-		; Type: intiger 
-		; Use: The index of an element in an array. 
-		; Constraint: N/a 
-	; Array_size: 
-		; Type: intiger 
-		; Use: The size of the used array.
-		; Constraint: N/a 
-; Returns: 0 or 1, 0 if the element is out of bounds of the array. 1 if the element is in bounds of the array. 
-; Use: Print an message if the element is to large or the small. Used as a boolean. 
-
-		PROC InBounds
-
-		push ebp
-		mov ebp, esp
-
-		push ebx
-
-		mov eax, [ebp+8]
-		mov ebx, [ebp+12]
-
-		cmp eax, ebx    ; Make sure that the Index is in bounds of the array. 
-		jge @@toLarge
-
-		cmp eax, 0
-		jl @@toSmall
-
-		jmp @@inBounds 	; If you reach here, your index is in bounds of the array 
-
-		@@toLarge:
-		mov ah, 09h                     ; AH=09h - Print DOS Message
-        mov edx, offset _msgL            ; DS:EDX -> $ Terminated String
-        int 21h                         ; DOS INT 21h
-
-        mov eax, 0
-
-		jmp @@stop						; make sure we don't print the other message, jump to the end of the code 
-
-		@@toSmall:						; The element is to large if you jump to this label
-		mov ah, 09h                     
-        mov edx, offset _msgS           
-        int 21h  
-
-        mov eax, 0
-        jmp @@stop
-
-        @@inBounds:						; if you jump to here, the element is in bounds 
-
-        mov eax, 1
-
-        @@stop:
-
-		pop ebx 
-		mov esp, ebp
-		pop ebp
-		ret
-		ENDP InBounds
 
 ; Author: Asma Oualmakran
 ; Function: SetArraySize
@@ -323,7 +266,7 @@ white 		equ 15
 		je @@gridArray
 
 		cmp al, [gridArray2]
-		je @@gridArray2
+		je @@gridArray
 
 		@@bufferAdress: 
 		mov eax, vidBuffSize
@@ -332,9 +275,6 @@ white 		equ 15
 		@@gridArray:
 		mov eax, gridSize
 		jmp @@stop 
-
-		@@gridArray2:
-		mov eax, gridSize
 
 		@@stop: 
 
@@ -345,9 +285,158 @@ white 		equ 15
 		ENDP SetArraySize 
 
 ; Author: Asma Oualmakran
+; Function: SetWidth
+; Parameters: 
+	; ArrayAdres: 
+		; Type: Adres 
+		; Use: The adres of the array where we need the width of (not the length)
+		; Constraint: The array must be used as a grid, two dimenstional array 
+; Returns: The width of the grid
+; Use: Get the width of a grid 
+
+		PROC SetWidth 
+
+		push ebp
+		mov ebp, esp
+
+		mov eax, [ebp+8]
+
+		cmp eax, bufferAdress 
+		je @@bufferAdress
+
+		cmp al, [gridArray]
+		je @@gridArray
+
+		cmp al, [gridArray2]
+		je @@gridArray
+
+		@@bufferAdress:
+		mov eax, windowWidth
+		jmp @@stop 
+
+		@@gridArray: 
+		mov eax, gridWidth
+		jmp @@stop
+
+		@@stop:
+
+		mov esp, ebp
+		pop ebp
+
+		ret 
+		ENDP SetWidth
+
+; Author: Asma Oualmakran
+; Function: SetHeight
+; Parameters: 
+	; ArrayAdres:
+		; Type: Adres 
+		; Use: The adres of the array where we need the height of (not the length)
+		; Constraint: The array must be used as a grid, two dimenstional array 
+; Returns: The height of the grid
+; Use: Get the height of a grid
+		PROC SetHeight 
+
+		push ebp
+		mov ebp, esp
+
+		mov eax, [ebp+8]
+
+		cmp eax, bufferAdress 
+		je @@bufferAdress
+
+		cmp al, [gridArray]
+		je @@gridArray
+
+		cmp al, [gridArray2]
+		je @@gridArray
+
+		@@bufferAdress:
+		mov eax, windowHeight
+		jmp @@stop 
+
+		@@gridArray: 
+		mov eax, gridHeight
+		jmp @@stop
+
+		@@stop:
+
+		mov esp, ebp
+		pop ebp
+
+		ret 
+		ENDP SetHeight
+
+
+
+
+; Author: Asma Oualmakran 
+; Function: InBounds 
+; Parameters: 
+	; Index: 
+		; Type: intiger 
+		; Use: The index of an element in an array. 
+		; Constraint: N/a 
+	; Array_size: 
+		; Type: intiger 
+		; Use: The size of the used array.
+		; Constraint: N/a 
+; Returns: 0 or 1, 0 if the element is out of bounds of the array. 1 if the element is in bounds of the array. 
+; Use: Print an message if the element is to large or the small. Used as a boolean. 
+
+		PROC InBounds
+
+		push ebp
+		mov ebp, esp
+
+		push ebx
+
+		mov eax, [ebp+8]
+		mov ebx, [ebp+12]
+
+
+		cmp eax, ebx    ; Make sure that the Index is in bounds of the array. 
+		jge @@toLarge	; index is from 0 - length-1 if it is equal to the length or larger -> out of bounds
+
+		cmp eax, 0		
+		jl @@toSmall
+
+		jmp @@inBounds 	; If you reach here, your index is in bounds of the array 
+
+		@@toLarge:
+		mov ah, 09h                     ; AH=09h - Print DOS Message
+        mov edx, offset _msgL            ; DS:EDX -> $ Terminated String
+        int 21h                         ; DOS INT 21h
+
+        mov eax, 0
+
+		jmp @@stop						; make sure we don't print the other message, jump to the end of the code 
+
+		@@toSmall:						; The element is to large if you jump to this label
+		mov ah, 09h                     
+        mov edx, offset _msgS           
+        int 21h  
+
+        mov eax, 0
+        jmp @@stop
+
+        @@inBounds:						; if you jump to here, the element is in bounds 
+
+        mov eax, 1
+
+        @@stop:
+
+		pop ebx 
+		mov esp, ebp
+		pop ebp
+		ret
+		ENDP InBounds
+
+
+
+; Author: Asma Oualmakran
 ; Function: GetValue 
 ; Parameters: 
-
 	; Index: 
 		; Type: intiger
 		; Use: The index of an element in the array 
@@ -552,13 +641,60 @@ white 		equ 15
 		ret 
 		ENDP InitWindow
 
+; Author: Asma Oualmakran
+; Function: DrawLine 
+; Parameters: 
+	; Index: 
+		; Type: Initiger 
+		; Use: The index of the element in the gridArray.
+		; Constraint: N/a 
+	; Array: 
+		; Type: Adres
+		; Use: The array that needs to be adjusted.
+		; Constraint: N/a
+	; Color:
+		; Type: Intiger
+		; Use: The color of the pixel. 
+		; Constraint: larger or equal to 0 and smaller or equal to 15.
+; Use: Set the elements of the video buffer, and draw a line.
+; Returns: N/a 
+		
+		PROC DrawLine
+
+		push ebp
+		mov ebp, esp 
+
+		push eax ; color
+		push ebx 
+		push ecx 
+		push edx  ; index 
+		push edi  ; adres 
+
+		add edi, edx ; start on the right offset 
+		mov ecx, blockWidth ; set the counter for rep -> draw the right width 
+
+		rep stosb 
+
+		pop edi 
+		pop edx 
+		pop ecx 
+		pop ebx 
+		pop eax 
+
+		mov esp, ebp 
+		pop ebp
+
+		ret
+		ENDP DrawLine
+
+
 
 ; Author: Asma Oualmakran
 ; Function: DrawSquare 
 ; Parameters: 
 	; Index: 
 		; Type: Intiger
-		; Use: The index in the video buffer where we need to start wriring
+		; Use: The index of the element in the gridArray
 		; Constraint: N/a
 	; Array: 
 		; Type: Adres 
@@ -578,24 +714,26 @@ white 		equ 15
 
 		push eax 	; color
 		push ebx 	; index
-		push edi	; adres of the used array 
+		push edx 	; the width of the window -> set by function 
+		push ecx 
+		push edi	; adres of array where we write to 
+
+		; the width of the grid --> calculate in the calling fuction
 
 		mov eax, [ebp+8]
 		mov ebx, [ebp+12]
-		mov edi, [ebp+16]
+		mov edx, [ebp+16]
+		mov edi, [ebp+20]
 
-		; need to draw at index * blockWidth
-		; and y too 
-		mov ebx, 300
-		mov ecx, blockWidth
-		imul ebx, ecx 
-		add ebx, ecx
-		add edi, ebx ; make sure it starts at the right index of the array 
+		; for mapping gridArray on the display 
+		; you need to extract the x and y coordinate form the grid index
+		; and recalculate the index for the vidbuffer 
+		; save those coordinates on the stack, each loop -> restore y and increment it 
 
-		mov ecx, 20; functions as counter 
-		rep stosb 
 
-		pop esi 
+		pop edi
+		pop edx 
+		pop ecx  
 		pop ebx 
 		pop eax 
 		
@@ -616,21 +754,61 @@ white 		equ 15
         push ds 						; Put value of DS register on the stack
         pop es 							; And write this value to ES
 
-       call InitVideo
-       call InitWindow
+        call InitVideo
+        call InitWindow
 
-       mov eax, black
-     ;  mov bh, 0 
-      ; mov bl, bufferAdress
+       mov eax, black 
+       mov edx, 6
        mov edi, bufferAdress
-;
-       mov ebx, 10
 
        push edi 
-       push ebx 
+       push edx 
        push eax 
-       call DrawSquare
+       call DrawLine
        add esp, 12
+
+   ;     push edx 
+    ;    push eax 
+     ;   call GetCoordinates
+      ;  add esp, 8
+
+      ;	lea ebx, [gridArray]
+   ;   	mov ebx, bufferAdress
+
+    ;  	push ebx 
+    ;  	call SetHeight
+    ;  	add esp, 4
+
+    ;  	push eax 
+    ;  	call PrintDigit
+    ;  	add esp, 4
+
+   ;     push eax 
+    ;    call PrintDigit
+     ;   add esp, 4
+
+;        push ebx 
+ ;       push eax 
+  ;      call GetCoordinates
+   ;     add esp, 8
+
+   	;	div ebx
+    ;   call InitVideo
+     ;  call InitWindow
+
+     ;  mov eax, black
+     ;  mov bh, 0 
+      ; mov bl, bufferAdress
+     ;  mov edi, bufferAdress
+;
+    ;   mov ebx, 10
+
+     ;  push edi 
+      ; push ebx 
+      ; push eax 
+      ; call DrawSquare
+      ; add esp, 12
+
 
   ;     xor eax, eax 
  ;      mov ah, 0
