@@ -26,7 +26,8 @@ gridWidth	equ 10
 gridHeight	equ 10
 gridSize 	equ gridWidth * gridHeight ; the number of elements in the grid = the length of the gridArray
 blockWidth 	equ 15
-blockHeight equ 15
+blockHeight equ 12			; the height is less than the width 
+							; due to the thickness of the lines, if you take the same height as width, it will form a rectangle
 
 ;video Macro's
 bufferAdress	equ 0a0000h
@@ -118,6 +119,7 @@ white 		equ 15
 		ret
 		ENDP PrintDigit
 
+
 ; Author: Asma Oualmakran
 ; Function: Index
 ; Parameters: 
@@ -129,7 +131,7 @@ white 		equ 15
 		; Type: intiger 
 		; Use: y-coordinate of the cell. 
 		; Constraint: larger or equal to 0 and smaller than gridHeight.
-	; Array Length: 
+	; Adres Array: 
 		; Type: Macro 
 		; Use: The length of the used array. 
 		; Constraint: N/a 
@@ -141,12 +143,13 @@ white 		equ 15
 		push ebp 
 		mov ebp, esp 
 		; eax containts the x-coordinate
-		; ebx containts the y-coordinate
-		; ecx containts the width of the grid or window 
+		; ebx containts the adres array 
+		; ecx containts the y-coordinate
 		; We use eax to pass the return value of this function
 	 
 		push ebx 
 		push ecx  
+		push edx 
 
 		mov eax, [ebp+8]
 		mov ebx, [ebp+12]
@@ -158,12 +161,22 @@ white 		equ 15
 		; y times the width will give the height in the grid 
 		; we dec y, we start counting from 0, otherwise we put the element 
 		; one location to low on the grid. 
-		
-		
-		imul ebx, ecx
-		add eax, ebx  
 
+		push eax 
 
+		push ecx 
+		call SetWidth
+		add esp, 4
+
+		mov ecx, eax 
+
+		pop eax 	; restore the x-coordinate
+
+		imul ebx, ecx 
+
+		add eax, ebx 	
+
+		pop edx 
 		pop ecx
 		pop ebx  
 
@@ -178,7 +191,7 @@ white 		equ 15
 ; Function: GetCoordinates 
 ; Parameters: 
 	; Index: 
-		; Type: intiger
+		; Type: Intiger
 		; Use: The index of the element who's coordinates are needed.
 		; Constraint: N/a 
 	; Array: 
@@ -188,51 +201,61 @@ white 		equ 15
 ; Returns: The x-coordinate and the y-coordinate of the selected element 
 ; Use: Calculate the coordinates of an element based on the index of the element and the array that contains that element. 
 
+; In the result of the function 
+; eax contains the y-coordinate -> divide by the gridWidth
+; edx contains the x-coordinate -> remainder --> mod 
+
 		PROC GetCoordinates
 
 		push ebp 
 		mov ebp, esp 
 
+		push ebx 
 		push ecx 
 
 		mov eax, [ebp+8]	; contains the index of the element
-		mov ecx, [ebp+12]	; contains the width of the grid or the window 
+		mov ebx, [ebp+12]	; contains the adres of the array 
 
-		mov edx, 0 			; need to set edx to 0 -> otherwise div will crash
-		cmp eax, ecx
+		push eax 			; save the index
 
-		
+		push ebx 
+		call SetWidth
+		add esp, 4
+
+		mov ebx, eax 	; set ebx to the width of the grid
+
+		pop eax 		; restore the index
+	
+		cmp eax, ebx 
 		jl @@widthL 	; if the index is smaller than the width of the grid
 						; you know that the y-coordinate = 0 and x-coordinate = index 
 						; if you don't test it, the code will crash when you try to divide/ modulo 
 
-		div ecx			; this wil store the y-value in eax -> quotient 
-						; and store the x-value in edx -> remainder which is the same as mod 			
+		mov edx, 0 		; need to set edx to 0 -> otherwise div will crash
+		div ebx			; this wil store the y-value in eax -> quotient 
+						; and store the x-value in edx -> remainder which is the same as mod 
+
 		jmp @@stop		; skip the rest of the code 
 
 		@@widthL:
-		mov edx, eax 	; first move the index into edx, ready to return 
-		mov eax, 0 		; we know that the y-coordinate equals to 0
+		mov edx, eax		; we know that the x-coordinate equals to the index 
+		mov eax, 0	
+		; eax -> y coordinate
+		; edx -> x coordinate
 
 		@@stop:
-
-		push edx 
-		call PrintDigit
-		add esp, 4
-		
-		push eax 
-		call PrintDigit
-		add esp, 4
 
 						; the result is returned in eax, edx (eax contains the quotient -> y coordinate, edx contains the remainder
 						; -> restult of mod) it's returned that way by div, no need to change it.
 		pop ecx 
+		pop ebx 
 
 		mov esp, ebp
 		pop ebp 
 
 		ret
 		ENDP GetCoordinates
+
 
 ; Author: Asma Oualmakran
 ; Function: SetArraySize
@@ -262,10 +285,10 @@ white 		equ 15
 		cmp eax, bufferAdress
 		je @@bufferAdress
 
-		cmp al, [gridArray]
+		cmp al, [_gridArray]
 		je @@gridArray
 
-		cmp al, [gridArray2]
+		cmp al, [_gridArray2]
 		je @@gridArray
 
 		@@bufferAdress: 
@@ -283,6 +306,7 @@ white 		equ 15
 
 		ret 
 		ENDP SetArraySize 
+
 
 ; Author: Asma Oualmakran
 ; Function: SetWidth
@@ -304,10 +328,10 @@ white 		equ 15
 		cmp eax, bufferAdress 
 		je @@bufferAdress
 
-		cmp al, [gridArray]
+		cmp al, [_gridArray]
 		je @@gridArray
 
-		cmp al, [gridArray2]
+		cmp al, [_gridArray2]
 		je @@gridArray
 
 		@@bufferAdress:
@@ -326,6 +350,7 @@ white 		equ 15
 		ret 
 		ENDP SetWidth
 
+
 ; Author: Asma Oualmakran
 ; Function: SetHeight
 ; Parameters: 
@@ -335,6 +360,7 @@ white 		equ 15
 		; Constraint: The array must be used as a grid, two dimenstional array 
 ; Returns: The height of the grid
 ; Use: Get the height of a grid
+
 		PROC SetHeight 
 
 		push ebp
@@ -345,10 +371,10 @@ white 		equ 15
 		cmp eax, bufferAdress 
 		je @@bufferAdress
 
-		cmp al, [gridArray]
+		cmp al, [_gridArray]
 		je @@gridArray
 
-		cmp al, [gridArray2]
+		cmp al, [_gridArray2]
 		je @@gridArray
 
 		@@bufferAdress:
@@ -368,8 +394,6 @@ white 		equ 15
 		ENDP SetHeight
 
 
-
-
 ; Author: Asma Oualmakran 
 ; Function: InBounds 
 ; Parameters: 
@@ -382,7 +406,7 @@ white 		equ 15
 		; Use: The size of the used array.
 		; Constraint: N/a 
 ; Returns: 0 or 1, 0 if the element is out of bounds of the array. 1 if the element is in bounds of the array. 
-; Use: Print an message if the element is to large or the small. Used as a boolean. 
+; Use: Print an message if the element is to large or the small. Used as a boolean to check if an index is in bounds of an array. 
 
 		PROC InBounds
 
@@ -521,14 +545,13 @@ white 		equ 15
 		push edx ; containts the index. 
 		push edi ; containts the adres of the array 
 
-		mov eax, [ebp+8]
+		mov eax, [ebp+8]	
 		mov edx, [ebp+12]
 		mov edi, [ebp+16]
 
 		
 		push eax ; store eax to not overwrite is by the called functions
 				 ; you store it before edi, so it's on top of the stack and not used by the fuction SetArraySize
-		
 
 		push edi
 		call SetArraySize
@@ -561,6 +584,7 @@ white 		equ 15
 
 		ret
 		ENDP SetValue
+
 
 ; Author: Asma Oualmakran
 ; Function: InitVideo 
@@ -625,9 +649,9 @@ white 		equ 15
 
 		call InitVideo	; open the video mode 
 		
-
+		mov ah, 0
 		mov al, white		; place the color in al 
-		mov ecx, vidBuffSize
+		mov ecx, vidBuffSize  ; works as a counter
 		mov edi, bufferAdress ; the index where stosb needs to start 
 		rep stosb	; loops over the video buffer to set every pixel to a value 
 
@@ -656,38 +680,44 @@ white 		equ 15
 		; Type: Intiger
 		; Use: The color of the pixel. 
 		; Constraint: larger or equal to 0 and smaller or equal to 15.
-; Use: Set the elements of the video buffer, and draw a line.
+	; Size: 
+		; Type: Intiger
+		; Use: The length of the line 
+		; Constraint: Larger than 0 an smaller or equal to the width of the screen. 
+; Use: Set the elements of the video buffer, and draw a horizintal line 
 ; Returns: N/a 
-		
+
 		PROC DrawLine
 
-		push ebp
+		push ebp 
 		mov ebp, esp 
 
-		push eax ; color
+		push eax 
 		push ebx 
 		push ecx 
-		push edx  ; index 
-		push edi  ; adres 
+		push edi 
 
-		add edi, edx ; start on the right offset 
-		mov ecx, blockWidth ; set the counter for rep -> draw the right width 
+		mov eax, [ebp+8]	; color 
+		mov ebx, [ebp+12]	; index 
+		mov ecx, [ebp+16]	; width 
+		mov edi, [ebp+20]	; adress 
+
+	;	mov ecx, blockWidth
+		add edi, ebx
 
 		rep stosb 
 
 		pop edi 
-		pop edx 
 		pop ecx 
 		pop ebx 
 		pop eax 
 
-		mov esp, ebp 
-		pop ebp
+		
+		mov esp, ebp
+		pop ebp  
 
-		ret
+		ret 
 		ENDP DrawLine
-
-
 
 ; Author: Asma Oualmakran
 ; Function: DrawSquare 
@@ -714,22 +744,86 @@ white 		equ 15
 
 		push eax 	; color
 		push ebx 	; index
-		push edx 	; the width of the window -> set by function 
-		push ecx 
+		push ecx 	
+		push edx 	; widht of the grid --> set by function
 		push edi	; adres of array where we write to 
 
 		; the width of the grid --> calculate in the calling fuction
 
 		mov eax, [ebp+8]
 		mov ebx, [ebp+12]
-		mov edx, [ebp+16]
-		mov edi, [ebp+20]
+		mov edi, [ebp+16]
 
 		; for mapping gridArray on the display 
 		; you need to extract the x and y coordinate form the grid index
 		; and recalculate the index for the vidbuffer 
-		; save those coordinates on the stack, each loop -> restore y and increment it 
 
+		; set ecx to the height
+		mov ecx, blockHeight
+
+		; loop 
+		@@loop:
+
+		cmp ecx, 0 		; if the counter < 0 the square is drawn 
+		jl @@stop		; jou jump to the end of the function --> @@stop
+
+		push ecx ; save the main counter
+
+		push eax ; save the color -> eax will be alterd by the next function
+	
+
+		; extract the coordinates
+		push edi 					; no need to set the gridWidth, it will be done by the function self
+		push ebx 
+		call GetCoordinates
+		add esp, 8 
+
+		; x -> edx 
+		; y -> ebx 
+
+		mov ebx, eax 	; ebx containts the y coordinate
+
+		cmp ecx, blockHeight   ; solution for the exception if it is the first time 
+		je @@ecxNOTalterd	   ; the loop is started, the y coordinate in edx doesn't need te be alterd 
+
+		; calculate the index in the vidbuffer
+		inc ebx 				; in al other cases, the y coordinate is incremented 
+
+		@@ecxNOTalterd: 		; if ecx isn't alterd you have jumped to this label 
+
+		push edi 	; adres 
+		push ebx 	; y-coordinate
+		push edx 	; x-coordinate
+		call Index
+		add esp, 12
+
+		mov ebx, eax ; the index is places in ebx 
+					 ; the old x coordinate that was placed in ebx is no longer needed 
+					 ; it will be recalculated in the next loop 
+		
+		; restore eax 
+		pop eax 	; eax contains the color again 
+
+		; give the length of the line 
+		mov ecx, blockWidth
+
+		; call DrawLine
+		push edi 	; the adres 
+		push ecx 	; the line length
+		push ebx 	; the index 
+		push eax 	; the color
+		call DrawLine
+		add esp, 16
+
+		; restore ecx (the main counter)
+		pop ecx  	; dec the counter and start the loop angain 
+
+	
+		dec ecx 
+		
+		jmp @@loop
+
+		@@stop:
 
 		pop edi
 		pop edx 
@@ -746,6 +840,8 @@ white 		equ 15
 
 
 
+
+
 	main:
 
         sti                             ; Set The Interrupt Flag
@@ -754,18 +850,63 @@ white 		equ 15
         push ds 						; Put value of DS register on the stack
         pop es 							; And write this value to ES
 
-        call InitVideo
-        call InitWindow
+     call InitVideo
+      call InitWindow
 
-       mov eax, black 
-       mov edx, 6
-       mov edi, bufferAdress
 
-       push edi 
-       push edx 
-       push eax 
-       call DrawLine
-       add esp, 12
+		mov eax, black 
+		mov ebx, 330
+		mov ecx, blockWidth
+		mov edi, bufferAdress
+
+		push edi 
+	;	push ecx
+		push ebx 
+		push eax 
+
+		call DrawSquare
+		add esp, 12
+
+	;	mov edx, 0
+	;	mov ebx, 320 
+	;	mov eax, 400
+	;	div ebx 
+
+
+	;	push ebx 
+	;	push eax 
+;
+;		call GetCoordinates
+;		add esp, 8 
+;
+	;	push eax 
+	;	call PrintDigit
+	;	add esp, 4 
+
+	;	push edx 
+	;	call PrintDigit
+	;	add esp,  4
+		; drawline werkt 
+		; je hebt een illigal write -> je zit ergens op het verkeerde adres 
+
+      ; push edi 
+      ; push edx 
+      ; push eax 
+      ; call DrawSquare
+      ; add esp, 12
+
+ ;    push edi 
+  ;   push edx 
+   ;  push eax 
+    ; call DrawLine
+     ;add esp, 12
+   		
+
+
+   	;	push ebx 
+   ;		push eax 
+   	;	call GetCoordinates
+   ;		add esp, 4
 
    ;     push edx 
     ;    push eax 
@@ -774,41 +915,6 @@ white 		equ 15
 
       ;	lea ebx, [gridArray]
    ;   	mov ebx, bufferAdress
-
-    ;  	push ebx 
-    ;  	call SetHeight
-    ;  	add esp, 4
-
-    ;  	push eax 
-    ;  	call PrintDigit
-    ;  	add esp, 4
-
-   ;     push eax 
-    ;    call PrintDigit
-     ;   add esp, 4
-
-;        push ebx 
- ;       push eax 
-  ;      call GetCoordinates
-   ;     add esp, 8
-
-   	;	div ebx
-    ;   call InitVideo
-     ;  call InitWindow
-
-     ;  mov eax, black
-     ;  mov bh, 0 
-      ; mov bl, bufferAdress
-     ;  mov edi, bufferAdress
-;
-    ;   mov ebx, 10
-
-     ;  push edi 
-      ; push ebx 
-      ; push eax 
-      ; call DrawSquare
-      ; add esp, 12
-
 
   ;     xor eax, eax 
  ;      mov ah, 0
@@ -871,11 +977,11 @@ white 		equ 15
 DATASEG
 
 	; Your data comes here
-	gridArray db gridSize dup (20)	; dd -> 32-bit
+	_gridArray db gridSize dup (0)	; dd -> 32-bit
 									; db -> 8-bit, byte string
-	gridArray2 db gridSize dup (0)	; second array to be able ;to compare the old data
-	generation dd 0 				; het tellen van generaties dd -> een intiger of floating point getal 
-	colorArray dd 000 				; hier moeten er nog de kleuren in komen  
+	_gridArray2 db gridSize dup (0)	; second array to be able ;to compare the old data
+	_generation dd 0 				; het tellen van generaties dd -> een intiger of floating point getal 
+;	_colorArray dd 000 				; hier moeten er nog de kleuren in komen  
 
 	; errors and information strings
 	_msg1 db 'equal 1', 10, 13, '$'
