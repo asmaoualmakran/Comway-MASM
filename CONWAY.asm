@@ -26,7 +26,8 @@ gridWidth	equ 10
 gridHeight	equ 10
 gridSize 	equ gridWidth * gridHeight ; the number of elements in the grid = the length of the gridArray
 blockWidth 	equ 15
-blockHeight equ 15
+blockHeight equ 12			; the height is less than the width 
+							; due to the thickness of the lines, if you take the same height as width, it will form a rectangle
 
 ;video Macro's
 bufferAdress	equ 0a0000h
@@ -118,6 +119,7 @@ white 		equ 15
 		ret
 		ENDP PrintDigit
 
+
 ; Author: Asma Oualmakran
 ; Function: Index
 ; Parameters: 
@@ -189,7 +191,7 @@ white 		equ 15
 ; Function: GetCoordinates 
 ; Parameters: 
 	; Index: 
-		; Type: intiger
+		; Type: Intiger
 		; Use: The index of the element who's coordinates are needed.
 		; Constraint: N/a 
 	; Array: 
@@ -254,6 +256,7 @@ white 		equ 15
 		ret
 		ENDP GetCoordinates
 
+
 ; Author: Asma Oualmakran
 ; Function: SetArraySize
 ; Parameters: 
@@ -304,6 +307,7 @@ white 		equ 15
 		ret 
 		ENDP SetArraySize 
 
+
 ; Author: Asma Oualmakran
 ; Function: SetWidth
 ; Parameters: 
@@ -346,6 +350,7 @@ white 		equ 15
 		ret 
 		ENDP SetWidth
 
+
 ; Author: Asma Oualmakran
 ; Function: SetHeight
 ; Parameters: 
@@ -355,6 +360,7 @@ white 		equ 15
 		; Constraint: The array must be used as a grid, two dimenstional array 
 ; Returns: The height of the grid
 ; Use: Get the height of a grid
+
 		PROC SetHeight 
 
 		push ebp
@@ -388,8 +394,6 @@ white 		equ 15
 		ENDP SetHeight
 
 
-
-
 ; Author: Asma Oualmakran 
 ; Function: InBounds 
 ; Parameters: 
@@ -402,7 +406,7 @@ white 		equ 15
 		; Use: The size of the used array.
 		; Constraint: N/a 
 ; Returns: 0 or 1, 0 if the element is out of bounds of the array. 1 if the element is in bounds of the array. 
-; Use: Print an message if the element is to large or the small. Used as a boolean. 
+; Use: Print an message if the element is to large or the small. Used as a boolean to check if an index is in bounds of an array. 
 
 		PROC InBounds
 
@@ -541,7 +545,7 @@ white 		equ 15
 		push edx ; containts the index. 
 		push edi ; containts the adres of the array 
 
-		mov eax, [ebp+8]
+		mov eax, [ebp+8]	
 		mov edx, [ebp+12]
 		mov edi, [ebp+16]
 
@@ -567,7 +571,6 @@ white 		equ 15
 
 		mov [byte ptr edi+edx], al
 
-
 		@@stop:
 																		
 		pop esi 
@@ -581,6 +584,7 @@ white 		equ 15
 
 		ret
 		ENDP SetValue
+
 
 ; Author: Asma Oualmakran
 ; Function: InitVideo 
@@ -779,13 +783,13 @@ white 		equ 15
 
 		mov ebx, eax 	; ebx containts the y coordinate
 
-	;	cmp ecx, blockHeight   ; solution for the exception if it is the first time 
-	;	je @@ecxNOTalterd	   ; the loop is started, the y coordinate in edx doesn't need te be alterd 
+		cmp ecx, blockHeight   ; solution for the exception if it is the first time 
+		je @@ecxNOTalterd	   ; the loop is started, the y coordinate in edx doesn't need te be alterd 
 
 		; calculate the index in the vidbuffer
-	;	inc ebx 				; in al other cases, the y coordinate is incremented 
+		inc ebx 				; in al other cases, the y coordinate is incremented 
 
-	;	@@ecxNOTalterd: 		; if ecx isn't alterd you have jumped to this label 
+		@@ecxNOTalterd: 		; if ecx isn't alterd you have jumped to this label 
 
 		push edi 	; adres 
 		push ebx 	; y-coordinate
@@ -809,7 +813,7 @@ white 		equ 15
 		push ebx 	; the index 
 		push eax 	; the color
 		call DrawLine
-		add esp, 12
+		add esp, 16
 
 		; restore ecx (the main counter)
 		pop ecx  	; dec the counter and start the loop angain 
@@ -817,7 +821,7 @@ white 		equ 15
 	
 		dec ecx 
 		
-	;	jmp @@loop
+		jmp @@loop
 
 		@@stop:
 
@@ -846,8 +850,8 @@ white 		equ 15
         push ds 						; Put value of DS register on the stack
         pop es 							; And write this value to ES
 
-    ; call InitVideo
-     ; call InitWindow
+     call InitVideo
+      call InitWindow
 
 
 		mov eax, black 
@@ -911,41 +915,6 @@ white 		equ 15
 
       ;	lea ebx, [gridArray]
    ;   	mov ebx, bufferAdress
-
-    ;  	push ebx 
-    ;  	call SetHeight
-    ;  	add esp, 4
-
-    ;  	push eax 
-    ;  	call PrintDigit
-    ;  	add esp, 4
-
-   ;     push eax 
-    ;    call PrintDigit
-     ;   add esp, 4
-
-;        push ebx 
- ;       push eax 
-  ;      call GetCoordinates
-   ;     add esp, 8
-
-   	;	div ebx
-    ;   call InitVideo
-     ;  call InitWindow
-
-     ;  mov eax, black
-     ;  mov bh, 0 
-      ; mov bl, bufferAdress
-     ;  mov edi, bufferAdress
-;
-    ;   mov ebx, 10
-
-     ;  push edi 
-      ; push ebx 
-      ; push eax 
-      ; call DrawSquare
-      ; add esp, 12
-
 
   ;     xor eax, eax 
  ;      mov ah, 0
