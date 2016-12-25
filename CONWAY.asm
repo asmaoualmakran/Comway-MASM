@@ -593,6 +593,7 @@ white 		equ 15
 ; Use: Initialize the video mode 
 
 		PROC InitVideo
+
 		push ebp
 		mov ebp, esp 
 
@@ -617,6 +618,7 @@ white 		equ 15
 ; Use: Return to text mode 
 
 		PROC ExitVideo 
+
 		push ebp 
 		mov ebp, esp 
 
@@ -641,6 +643,7 @@ white 		equ 15
 ; Use: Initialize the window, make the background one colour 
 
 		PROC InitWindow 
+
 		push ebp 
 		mov ebp, esp 
 		push eax 
@@ -649,8 +652,9 @@ white 		equ 15
 
 		call InitVideo	; open the video mode 
 		
-		mov ah, 0
-		mov al, white		; place the color in al 
+	;	mov ah, 0
+	;	mov al, white		; place the color in al 
+		mov eax, black 
 		mov ecx, vidBuffSize  ; works as a counter
 		mov edi, bufferAdress ; the index where stosb needs to start 
 		rep stosb	; loops over the video buffer to set every pixel to a value 
@@ -664,6 +668,60 @@ white 		equ 15
 
 		ret 
 		ENDP InitWindow
+
+; Author: Asma Oualmakran
+; Function: InitArray 
+; Parameters: N/a 
+; Retruns: N/a 
+; Use: Initialize the grid array's, fill them with 0. Tis is the initial state of the grid 
+
+		PROC InitArray
+
+		push ebp 
+		mov ebp, esp 
+		push eax 
+		push ecx 
+		push edi 
+
+		mov eax, 0
+		mov ecx, gridSize
+		lea edi, [_gridArray]
+		rep stosb 
+
+		lea edi, [_gridArray2]
+		rep stosb
+
+		pop edi 
+		pop ecx 
+		pop eax 
+
+		mov esp, ebp 
+		pop ebp 
+
+		ret 
+		ENDP InitArray
+
+; Author: Asma Oualmakran
+; Function: Reset 
+; Parameters: N/a 
+; Returns: N/a 
+; Use: Re-initialise the grid-array's, the videobuffer, (generation counter if implemented)
+
+		PROC Reset
+
+		push ebp
+		mov ebp, esp
+		; no need to push the registers, this function won't adjust them 
+		; and the functions called will save and restore them 
+
+		call InitWindow
+		call InitArray
+
+		mov esp, ebp 
+		pop ebp 
+
+		ret 
+		ENDP Reset 
 
 ; Author: Asma Oualmakran
 ; Function: DrawLine 
@@ -850,11 +908,14 @@ white 		equ 15
         push ds 						; Put value of DS register on the stack
         pop es 							; And write this value to ES
 
-     call InitVideo
+
+
+
+    call InitVideo
       call InitWindow
 
 
-		mov eax, black 
+		mov eax, red
 		mov ebx, 330
 		mov ecx, blockWidth
 		mov edi, bufferAdress
@@ -866,6 +927,12 @@ white 		equ 15
 
 		call DrawSquare
 		add esp, 12
+
+		mov ah,00h 						; these two lines make the code stop here 
+        int 16h							; you stay in video and can go to exit by pressing a key
+
+        call Reset 
+
 
 	;	mov edx, 0
 	;	mov ebx, 320 
@@ -977,7 +1044,7 @@ white 		equ 15
 DATASEG
 
 	; Your data comes here
-	_gridArray db gridSize dup (0)	; dd -> 32-bit
+	_gridArray db gridSize dup (20)	; dd -> 32-bit
 									; db -> 8-bit, byte string
 	_gridArray2 db gridSize dup (0)	; second array to be able ;to compare the old data
 	_generation dd 0 				; het tellen van generaties dd -> een intiger of floating point getal 
