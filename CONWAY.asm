@@ -54,6 +54,8 @@ lila 		equ 13
 yellow 		equ 14 
 white 		equ 15
 
+dead		equ 0
+
 ;---------------------------------------
 
 ; Author: http://stackoverflow.com/questions/4244624/print-integer-to-console-in-x86-assembly
@@ -401,9 +403,9 @@ white 		equ 15
 		; Type: intiger 
 		; Use: The index of an element in an array. 
 		; Constraint: N/a 
-	; Array_size: 
-		; Type: intiger 
-		; Use: The size of the used array.
+	; Array adres: 
+		; Type: Adres 
+		; Use: The used array where the bounds must be checked.
 		; Constraint: N/a 
 ; Returns: 0 or 1, 0 if the element is out of bounds of the array. 1 if the element is in bounds of the array. 
 ; Use: Print an message if the element is to large or the small. Used as a boolean to check if an index is in bounds of an array. 
@@ -416,43 +418,39 @@ white 		equ 15
 		push ebx
 
 		mov eax, [ebp+8]
-		mov ebx, [ebp+12]
+		mov esi, [ebp+12]
 
+		push eax 	; save the given index 
+
+		push esi 	; set the length of the array 
+		call SetArraySize
+		add esp, 4 
+
+		mov ebx, eax 	; ebx contains the array size 
+		pop eax 		; restore the saved value of eax 
 
 		cmp eax, ebx    ; Make sure that the Index is in bounds of the array. 
-		jge @@toLarge	; index is from 0 - length-1 if it is equal to the length or larger -> out of bounds
+		jge @@outBounds	; index is from 0 - length-1 if it is equal to the length or larger -> out of bounds
 
 		cmp eax, 0		
-		jl @@toSmall
+		jl @@outBounds
 
 		jmp @@inBounds 	; If you reach here, your index is in bounds of the array 
 
-		@@toLarge:
-		mov ah, 09h                     ; AH=09h - Print DOS Message
-        mov edx, offset _msgL            ; DS:EDX -> $ Terminated String
-        int 21h                         ; DOS INT 21h
+		@@inBounds:		; if you jump to here, the element is in bounds 
 
-        mov eax, 0
+		mov eax, 1
+		jmp @@stop
 
-		jmp @@stop						; make sure we don't print the other message, jump to the end of the code 
+		@@outBounds:
+		mov eax, 0	
 
-		@@toSmall:						; The element is to large if you jump to this label
-		mov ah, 09h                     
-        mov edx, offset _msgS           
-        int 21h  
-
-        mov eax, 0
-        jmp @@stop
-
-        @@inBounds:						; if you jump to here, the element is in bounds 
-
-        mov eax, 1
-
-        @@stop:
+		@@stop:
 
 		pop ebx 
 		mov esp, ebp
 		pop ebp
+
 		ret
 		ENDP InBounds
 
@@ -473,64 +471,57 @@ white 		equ 15
 ; Returns: The value on a location in a array.
 ; Use: Get the value of an element from an array.
 
-		PROC GetValue 
- 
- 		; to set the array adres before the call use 
- 		; lea esi, <array>
+		PROC GetValue
+
 		push ebp 
-		mov ebp, esp 
-			
-		push edx ; edx containts the index of the element 
-		push esi ; contains the memory adres
+		mov ebp, esp
 
-		mov edx, [ebp+8]	; index 
-		mov esi, [ebp+12]	; memory adres 
-	
+		push edx 
 		push esi 
-		call SetArraySize		; set the size of the array to check the bounds 
-		add esp, 4
 
-		push eax		; contains the array size 
-		push edx 		; contains the index 
-		call InBounds
+		mov edx, [ebp+8]
+		mov esi, [ebp+12]
+
+		push esi
+		push edx 
+		call InBounds 		; call this predicate to check if the element is in bounds 
 		add esp, 8
 
-		cmp eax, 0		; check if the index is in bounds of the array 
-		je @@stop		; if the returnvalue of the boolean is false, jump to the end
-
-		mov ah, 0
-		mov al, [byte ptr esi+edx]
+		cmp eax, 0			; if it out of bounds eax wil return 0 and jump to the end 
+		je @@stop 
+		
+		add esi, edx
+		lodsb
 
 		@@stop:
 
-		pop esi 
 		pop edx 
+		pop esi 
 
-				; eax is used to return the value of the element. 
-
-		mov esp, ebp 
+		mov esp, ebp
 		pop ebp
 
-		ret
+		ret 
 		ENDP GetValue
+
 
 
 
 ; Author: Asma Oualmakran
 ; Function: SetValue 
 ; Parameters: 
-	; Index: 
-		; Type: intiger
-		; Use: The index of an element in the array 
-		; Constraint: Larger or equal to 0 and smaller than the length of the array 
-	; Array adres: 
-		; Type: adres
-		; Use: The adres of the array 
-		; Constraint: Must be an adres of a byte array. 
 	; value: 
 		; Type: Intiger
 		; User: The value to be set in the array.
 		; Constraint: N/a 
+	; Index: 
+		; Type: intiger
+		; Use: The index of an element in the array 
+		; Constraint: Larger or equal to 0 and smaller than the length of the array  
+	; Array adres: 
+		; Type: adres
+		; Use: The adres of the array 
+		; Constraint: Must be an adres of a byte array.
 ; Returns: N/a
 ; Use: Set an value in the array.
 
@@ -541,7 +532,6 @@ white 		equ 15
 		push ebp 
 		mov ebp, esp 
 		push eax ; containts the value to be set.
-		push ecx ; containts the size -> to be set by SetArraySize.
 		push edx ; containts the index. 
 		push edi ; containts the adres of the array 
 
@@ -549,34 +539,25 @@ white 		equ 15
 		mov edx, [ebp+12]
 		mov edi, [ebp+16]
 
-		
-		push eax ; store eax to not overwrite is by the called functions
-				 ; you store it before edi, so it's on top of the stack and not used by the fuction SetArraySize
+		push eax 	; save eax, it will be altered by InBounds
 
-		push edi
-		call SetArraySize
-		add esp, 4 		; eax now containts the array size
-
-		mov ecx, eax 	; mov the array size from eax into ecx 
-		
-		push ecx 
+		push edi 
 		push edx 
-		call InBounds 	; check if the index is in bounds of the array 
+		call InBounds 	; call the predicate to check if the index is in bounds of the array 
 		add esp, 8 
 
-		cmp eax, 0		; if it is out of bounds, you stop. 
+		cmp eax, 0 
 		je @@stop
 
-		pop eax 		; retore the value of eax 		
+		pop eax 		; restore the value of eax 
 
-		mov [byte ptr edi+edx], al
+		add edi, edx 	; add the index to the adres to have the correct offset 
+		stosb			; save the value of eax, at the location contained by edi
 
 		@@stop:
 																		
-		pop esi 
+		pop edi 
 		pop edx
-		pop ecx 
-		pop ebx 
 		pop eax 
 
 		mov esp, ebp 
@@ -585,10 +566,125 @@ white 		equ 15
 		ret
 		ENDP SetValue
 
+; Author: Asma Oualmakran
+; Function: GenerationExtinct
+; Parameters: 
+	; Array: 
+		; Type: ArrayAdres
+		; Constraint: N/a 
+		; Use: The array who's next generation needs to be calculated.
+; Returns: 0 or 1, if there is no cell alive, it will return 1.
+; Use: Boolean to check if there is at least one cell alive.
+		
+		PROC GenerationExtinct
+
+		push ebp 
+		mov ebp, esp 
+
+		push eax 
+		push edx 
+		push esi 
+
+		mov esi, [ebp+8]
+
+		mov edx, 0 	; the index 
+
+		@@Loop: 
+
+		push esi 
+		push edx
+		call InBounds
+		add esp, 8
+
+		cmp eax, 0		; when you are out of bounds, you went through the entire array
+		je @@Extinct 		; and didn't find a living cell
+
+		push esi 		; get the value located on the index in the array 
+		push edx 
+		call GetValue
+		add esp, 8
+
+		cmp eax, dead 	; check if the cell is dead 
+		jne @@NotExtinct		; if it's not you set eax to 0
+
+		jmp @@Loop 		; if it is, you loop 
+		inc edx 		; increment the index 
+
+		@@NotExtinct:		; you found ONE living cell 
+		mov eax, 0
+		jmp @@Stop
+
+		@@Extinct:				; you looped the whole array and avent found one linving cell 
+		mov eax, 1
+
+		@@Stop:
+
+		pop esi 
+		pop edx
+
+		mov esp, ebp
+		pop ebp
+
+		ret
+		ENDP GenerationExtinct
+
+
+; Author: Asma Oualmakran
+; Function: NextGeneration
+; Parameters: 
+	; Source Array: 
+		; Type:
+		; Constraints: 
+		; Use: 
+	; Destination Array: 
+		; Type: 
+		; Constraints: 
+		; Use: 
+; Returns: N/a 
+; Use: Calculate the next generation/ new situation in the grid.
+
+		PROC NextGeneration
+
+		push ebp 
+		mov ebp, esp 
+
+		 
+		push ecx 	; will be used as counter 
+		push edx 	; will contain the index of the array
+		push esi 	; the source array 
+		push edi 	; the Destination array (we'll write to this array)
+
+		mov esi, [ebp+8]
+		mov edi, [ebp+12]
+
+		mov ecx, 0 		; we start at counter = 0
+		mov edx, 0 		; we start at index = 0 
+
+		@@CheckLeft:
+
+
+		@@CheckRight: 
+
+		@@CheckUnder: 
+
+		@@ChecAbove: 
+
+
+		pop edi 
+		pop esi 
+		pop edx 
+		pop ecx 
+
+		mov esp, ebp
+		pop ebp 
+
+		ret 
+		ENDP NextGeneration
+
 
 ; Author: Asma Oualmakran
 ; Function: InitVideo 
-; Parameters: 
+; Parameters: N/a 
 ; Returns: N/a 
 ; Use: Initialize the video mode 
 
@@ -705,7 +801,7 @@ white 		equ 15
 ; Function: Reset 
 ; Parameters: N/a 
 ; Returns: N/a 
-; Use: Re-initialise the grid-array's, the videobuffer, (generation counter if implemented)
+; Use: Re-initialise the grid-array's, the videobuffer, the variable for extinct, (generation counter if implemented)
 
 		PROC Reset
 
@@ -716,7 +812,8 @@ white 		equ 15
 
 		call InitWindow
 		call InitArray
-
+		mov [_extinct], 0
+	
 		mov esp, ebp 
 		pop ebp 
 
@@ -908,131 +1005,12 @@ white 		equ 15
         push ds 						; Put value of DS register on the stack
         pop es 							; And write this value to ES
 
-
-
-
-    call InitVideo
-      call InitWindow
-
-
-		mov eax, red
-		mov ebx, 330
-		mov ecx, blockWidth
-		mov edi, bufferAdress
-
-		push edi 
-	;	push ecx
-		push ebx 
-		push eax 
-
-		call DrawSquare
-		add esp, 12
-
-		mov ah,00h 						; these two lines make the code stop here 
-        int 16h							; you stay in video and can go to exit by pressing a key
-
-        call Reset 
-
-
-	;	mov edx, 0
-	;	mov ebx, 320 
-	;	mov eax, 400
-	;	div ebx 
-
-
-	;	push ebx 
-	;	push eax 
-;
-;		call GetCoordinates
-;		add esp, 8 
-;
-	;	push eax 
-	;	call PrintDigit
-	;	add esp, 4 
-
-	;	push edx 
-	;	call PrintDigit
-	;	add esp,  4
-		; drawline werkt 
-		; je hebt een illigal write -> je zit ergens op het verkeerde adres 
-
-      ; push edi 
-      ; push edx 
-      ; push eax 
-      ; call DrawSquare
-      ; add esp, 12
-
- ;    push edi 
-  ;   push edx 
-   ;  push eax 
-    ; call DrawLine
-     ;add esp, 12
-   		
-
-
-   	;	push ebx 
-   ;		push eax 
-   	;	call GetCoordinates
-   ;		add esp, 4
-
-   ;     push edx 
-    ;    push eax 
-     ;   call GetCoordinates
-      ;  add esp, 8
-
-      ;	lea ebx, [gridArray]
-   ;   	mov ebx, bufferAdress
-
-  ;     xor eax, eax 
- ;      mov ah, 0
- ;      mov al, 50
-  ;     mov edx, 5
-   ;    lea edi, [gridArray]
-;
- ;      push edi 
-  ;     push edx 
-   ;    push eax 
-;
- ;      call SetValue
-  ;     add esp, 12
-   ;  
-  	;	lea esi, [gridArray]
-  	;	mov eax, 5
-
-  ;		mov bh, 0 
-  ;		mov bl, [gridArray]
-  ;		mov eax, 6
-;
- ; 		push ebx 
-  ;		push eax 
-  ;		call GetCoordinates
-  ;		add esp, 8
-
-    
-  ;    push esi 
-   ;   push eax 
-    ;  call GetValue
-     ; sub esp, 8
-     ;	mov bh, 0
- 	;	mov bl, offset gridArray
- ;		lea esi, [gridArray]
- ;	mov edi, 5
- ;		mov ah, 0 
- 	;	mov al, [gridArray]
- 		
-
- ;		mov al, [byte ptr esi+edi]
-
-
+        mov ax, 03h						; set dos in text modus 
+        int 10h
 
     	;Pause 
-        mov ah,00h 						; these two lines make the code stop here 
-        int 16h							; you stay in video and can go to exit by pressing a key
-
-    
- 
-
-		call ExitVideo					; you alwas need to call exit video afther you call init 
+      ;  mov ah,00h 						; these two lines make the code stop here 
+       ; int 16h							; you stay in video and can go to exit by pressing a key
 
         mov eax, 4c00h                  ; AH = 4Ch - Exit To DOS
         int 21h                         ; DOS INT 21h
@@ -1044,10 +1022,11 @@ white 		equ 15
 DATASEG
 
 	; Your data comes here
-	_gridArray db gridSize dup (20)	; dd -> 32-bit
+	_gridArray db gridSize dup (10)	; dd -> 32-bit
 									; db -> 8-bit, byte string
 	_gridArray2 db gridSize dup (0)	; second array to be able ;to compare the old data
 	_generation dd 0 				; het tellen van generaties dd -> een intiger of floating point getal 
+	_extinct 	dd 25				; when the grid is extinct, this variable wil be 1
 ;	_colorArray dd 000 				; hier moeten er nog de kleuren in komen  
 
 	; errors and information strings
