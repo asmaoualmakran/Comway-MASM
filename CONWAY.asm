@@ -35,6 +35,8 @@ windowWidth		equ 320  ; the window width in pixels
 windowHeight	equ 200 ; the window height in pixels 
 vidBuffSize		equ windowHeight * windowWidth ; the length of the videobuffer
 
+gridAdres 		equ [_gridArray]
+gridAdres2		equ [_gridArray2]
 ;Color Macro's 
 ;colour pallet starts from 0 to 15
 black		equ 0
@@ -353,10 +355,10 @@ keepAlive	equ 2
 		cmp eax, bufferAdress
 		je @@bufferAdress
 
-		cmp al, [_gridArray]
+		cmp al, gridAdres
 		je @@gridArray
 
-		cmp al, [_gridArray2]
+		cmp al, gridAdres2
 		je @@gridArray
 
 		@@bufferAdress: 
@@ -396,10 +398,10 @@ keepAlive	equ 2
 		cmp eax, bufferAdress 
 		je @@bufferAdress
 
-		cmp al, [_gridArray]
+		cmp al, gridAdres
 		je @@gridArray
 
-		cmp al, [_gridArray2]
+		cmp al, gridAdres2
 		je @@gridArray
 
 		@@bufferAdress:
@@ -439,10 +441,10 @@ keepAlive	equ 2
 		cmp eax, bufferAdress 
 		je @@bufferAdress
 
-		cmp al, [_gridArray]
+		cmp al, gridAdres
 		je @@gridArray
 
-		cmp al, [_gridArray2]
+		cmp al, gridAdres2
 		je @@gridArray
 
 		@@bufferAdress:
@@ -1309,6 +1311,11 @@ keepAlive	equ 2
 		ret 
 		ENDP DrawGrid
 
+; Author: Asma Oualmakran
+; Procedure: Buffer 
+; Parameters
+	; 
+
 	main:
 
         sti                             ; Set The Interrupt Flag
@@ -1323,7 +1330,7 @@ keepAlive	equ 2
        call InitVideo
        call InitWindow
 
-       lea esi, [_gridArray]
+       lea esi, gridAdres
        mov edi, bufferAdress
        mov eax, 5
 
@@ -1335,6 +1342,8 @@ keepAlive	equ 2
 
        mov ah,00h 
        int 16h
+
+       call InitWindow
 
        mov eax, 4 
 
@@ -1367,7 +1376,8 @@ DATASEG
 	_gridArray2 db gridSize dup (0)	; second array to be able ;to compare the old data
 	_generation dd 0 				; het tellen van generaties dd -> een intiger of floating point getal 
 	_extinct 	dd 25				; when the grid is extinct, this variable wil be 1
-;	_colorArray dd 000 				; hier moeten er nog de kleuren in komen  
+	_bufferArray db vidBuffSize dup (?) ; the buffer for the videobuffer
+
 
 	; errors and information strings
 	_msg1 db 'equal 1', 10, 13, '$'
