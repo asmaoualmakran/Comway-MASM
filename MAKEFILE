@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # =============================================================================
 # Project makefile
 # =============================================================================
@@ -23,30 +22,4 @@ clean: .symbolic
 .silent
 debug: $(objs) .symbolic
   wlink debug watcom lines option Q,C system pmodew name $(dest) file {$(objs)}
-=======
-# =============================================================================
-# Project makefile
-# =============================================================================
-
-# Settings
-objs = CONWAY.obj
-dest = CONWAY.exe
-
-# =============================================================================
-# Do NOT edit this section, unless you know what you are doing.
-# =============================================================================
-.asm.obj
-  tasm /ml /m2 /w2 /z /zi /p /jIDEAL $<
-
-$(dest): $(objs)
-  wlink option quiet system pmodew name $@ file {$(objs)}
-
-clean: .symbolic
-  del *.obj
-  del $(dest)
-
-.silent
-debug: $(objs) .symbolic
-  wlink debug watcom lines option Q,C system pmodew name $(dest) file {$(objs)}
->>>>>>> 959d544fa84f1768469079b576adc0aadf405a05
   wd /tr=rsi /li=43 $(dest)
