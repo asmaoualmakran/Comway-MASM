@@ -30,13 +30,16 @@ blockHeight equ 12			; the height is less than the width
 							; due to the thickness of the lines, if you take the same height as width, it will form a rectangle
 
 ;video Macro's
-bufferAdress	equ 0a0000h
+vidBufferAdress	equ 0a0000h
 windowWidth		equ 320  ; the window width in pixels
 windowHeight	equ 200 ; the window height in pixels 
 vidBuffSize		equ windowHeight * windowWidth ; the length of the videobuffer
+bufferArray 	equ [_bufferArray]	; the adres of the bufferarray for dual buffering 
 
+; Macro's for the adresses of the grids
 gridAdres 		equ [_gridArray]
 gridAdres2		equ [_gridArray2]
+
 ;Color Macro's 
 ;colour pallet starts from 0 to 15
 black		equ 0
@@ -156,6 +159,7 @@ keepAlive	equ 2
 
 		push ebx 
 		push ecx 
+		push edx 
 		push esi 
 
 		mov eax, [ebp+8]	; y coordinate
@@ -177,6 +181,7 @@ keepAlive	equ 2
 		add eax, ebx
 
 		pop esi 
+		pop edx 
 		pop ecx 
 		pop ebx 
 
@@ -280,6 +285,7 @@ keepAlive	equ 2
 		mov ebp, esp 
 
 		push ebx
+		push edx 
 		push esi 
 		push edi 
 
@@ -318,8 +324,9 @@ keepAlive	equ 2
 
 		pop edi 
 		pop esi 
+		pop edx 
 		pop ebx 
-
+		; value is returned in eax 
 		mov esp, ebp
 		pop ebp 
 
@@ -352,7 +359,7 @@ keepAlive	equ 2
 
 		mov eax, [ebp+8]
 
-		cmp eax, bufferAdress
+		cmp eax, vidBufferAdress
 		je @@bufferAdress
 
 		cmp al, gridAdres
@@ -395,7 +402,7 @@ keepAlive	equ 2
 
 		mov eax, [ebp+8]
 
-		cmp eax, bufferAdress 
+		cmp eax, vidBufferAdress 
 		je @@bufferAdress
 
 		cmp al, gridAdres
@@ -438,7 +445,7 @@ keepAlive	equ 2
 
 		mov eax, [ebp+8]
 
-		cmp eax, bufferAdress 
+		cmp eax, vidBufferAdress 
 		je @@bufferAdress
 
 		cmp al, gridAdres
@@ -599,6 +606,11 @@ keepAlive	equ 2
 		push eax ; containts the value to be set.
 		push edx ; containts the index. 
 		push edi ; containts the adres of the array 
+
+		; in this case the value to be set is contained by eax 
+		; due to stosb will read the value of eax to place it in the array 
+		; by useing the register this way, there are no extra moves needed to place the 
+		; value to be set in the right register 
 
 		mov eax, [ebp+8]	
 		mov edx, [ebp+12]
@@ -923,6 +935,7 @@ keepAlive	equ 2
 		ret 
 		ENDP NextGeneration
 
+
 ; Author: Asma Oualmakran
 ; Function: InitVideo 
 ; Parameters: N/a 
@@ -989,9 +1002,9 @@ keepAlive	equ 2
 		
 	;	mov ah, 0
 	;	mov al, white		; place the color in al 
-		mov eax, black 
+		mov eax, dead 		; at initialisation all cells are dead  
 		mov ecx, vidBuffSize  ; works as a counter
-		mov edi, bufferAdress ; the index where stosb needs to start 
+		mov edi, vidBufferAdress ; the index where stosb needs to start 
 		rep stosb	; loops over the video buffer to set every pixel to a value 
 
 		pop edi 
@@ -1025,10 +1038,10 @@ keepAlive	equ 2
 		mov ecx, eax 
 		mov eax, 0
 
-		lea edi, [_gridArray]	; we only need to set ecx once 
+		lea edi,  gridAdres	; we only need to set ecx once 
 		rep stosb 				; _gridArray and _gridArray2 have the same size 
 
-		lea edi, [_gridArray2]
+		lea edi, gridAdres2
 		rep stosb
 
 		pop edi 
@@ -1086,14 +1099,15 @@ keepAlive	equ 2
 ; Author: Asma Oualmakran
 ; Function: DrawLine 
 ; Parameters: 
-	; Index: 
-		; Type: Initiger 
-		; Use: The index of the element in the gridArray.
-		; Constraint: N/a 
+	
 	; Color:
 		; Type: Intiger
 		; Use: The color of the pixel. 
 		; Constraint: larger or equal to 0 and smaller or equal to 15.
+	; Index: 
+		; Type: Initiger 
+		; Use: The index of the element in the gridArray.
+		; Constraint: N/a 
 	; Size: 
 		; Type: Intiger
 		; Use: The length of the line 
@@ -1128,7 +1142,6 @@ keepAlive	equ 2
 		pop ecx 
 		pop ebx 
 		pop eax 
-
 		
 		mov esp, ebp
 		pop ebp  
@@ -1179,27 +1192,29 @@ keepAlive	equ 2
 		call GetValue
 		add esp, 8
 
-		mov edx, eax 		; store the value from the array (color)
+		mov edx, eax 		; store the value from the array (color)		
 
-		pop eax 			; restore the original index 
+		pop eax 			; restore the original index  
 
 		push edi 
 		push esi 
 		push eax 
 		call CalcDispl		; eax contains the displaced coordinate
 		add esp, 12 		; in the bufferarray
+		; we need this index to be able to draw the block on the right location in the window
 
 		mov ebx, blockHeight 	; place the height of the block in ebx 
 
-		mov ecx, 0 
+		mov ecx, 0  
 
 		@@Loop:
 
 		push ecx 
-
+		push edx 			; need to save the color, otherwise it will be altered by
+							; GetCoordinates
 		cmp ecx, ebx 
-		je @@Stop 
-
+		je @@Stop 			; je not jl it starts from 0 to blockheight - 1 
+							; if jl is used, it will execute one iteration to much  
 		cmp ecx, 0 
 		je @@ecxNotAltered
 
@@ -1215,11 +1230,14 @@ keepAlive	equ 2
 		push eax 
 		call Index 			; calculate the index of y+1 
 		add esp, 12 
+		; we don't need to calculate the displacement index again 
+		; that's why we use the normal indexation 
+
 
 		@@ecxNotAltered:
 
-		mov ecx, blockWidth
-		mov edx, green 
+		pop edx 			; restore the color
+		mov ecx, blockWidth ; this is needed to determine the length of the lines 
 
 		push edi 		 	; buffer 
 		push ecx 			; line length
@@ -1228,9 +1246,8 @@ keepAlive	equ 2
 		call DrawLine
 		add esp, 16 
 
-
-		pop ecx 
-		inc ecx 
+		pop ecx 			; restore the iteration counter 
+		inc ecx 			; increment the iteration counter, (makes the loop stop on time)
 
 		jmp @@Loop
 
@@ -1256,10 +1273,6 @@ keepAlive	equ 2
 		; Type: Array adres
 		; Use: The array that represents the grid.  
 		; Constraint: N/a 
-	; Buffer Array: 
-		; Type: ArrayAdres
-		; Use: The bufferArray containing the information drwam on the screen. 
-		; Constraint: N/a 
 ; Use: Draw the grid. 
 ; Returns: N/a 
 
@@ -1275,28 +1288,43 @@ keepAlive	equ 2
 		push esi 
 		push edi 
 
-		mov esi, [ebp+8]		; the array containing the grid that needs drawing 
-		mov edi, [ebp+12]		; the bufferarray 
+		mov esi, [ebp+8]		; the array containing the grid that needs drawing
 
-		mov ecx, 0 				; Initialize the counter on 0 before starting the loop 
+		mov edi, offset _bufferArray 
 
 		push esi 
 		call SetArraySize
 		add esp, 4 
 
-		@@Loop: 
-		
-		; at the first iteration, eax isn't adjusted, you don't need to save it 		
+		mov ebx, eax 	; place the length of the array in ebx 
 
-		cmp ecx, eax 
-		je  @@Stop 				; if ecx = the length of the arry, you are on the end.
+		mov ecx, 0
 
-		push eax 				; save the length of the array, it will be adjusted by the functions that folow
+	;	@@Loop:
+		cmp ecx, ebp 	; is ecx = the length of the array, you are at the end 
+		je @@Stop
 
-		pop eax 				; restore the length of the array before the next iteration
-		jmp @@Loop
+		push edi 
+		push esi 
+		push ecx 
+		call DrawSquare	; you write the block into the buffer (everything is taking care of by drawSquare, offset, color ect)
+		add esp, 12 
 
-		@@Stop:
+		inc ecx 
+
+	;	jmp @@Loop
+
+		; afther you're done transfering the data of the blocks into the buffer 
+		; you can copy the result into the videobuffer
+
+	;	cld 
+	;	mov esi, offset _bufferArray
+	;	mov edi, 0a0000h
+	;	mov ecx, 64000 / 4
+	;	rep movsd 
+
+
+		@@Stop: 
 
 		pop edi 
 		pop esi
@@ -1327,39 +1355,13 @@ keepAlive	equ 2
         mov ax, 03h						; set dos in text modus 
         int 10h
 
-       call InitVideo
-       call InitWindow
+ 
 
-       lea esi, gridAdres
-       mov edi, bufferAdress
-       mov eax, 5
-
-       push edi 
-       push esi 
-       push eax 
-       call DrawSquare
-       add esp, 12
-
-       mov ah,00h 
-       int 16h
-
-       call InitWindow
-
-       mov eax, 4 
-
-       push edi 
-       push esi 
-       push eax 
-       call DrawSquare
-       add esp, 12 
-
-        mov ah,00h
-        int 16h 
+    	;Pause 
+        mov ah,00h 						; these two lines make the code stop here 
+        int 16h							; you stay in video and can go to exit by pressing a key
 
         call ExitVideo
-    	;Pause 
-      ;  mov ah,00h 						; these two lines make the code stop here 
-       ; int 16h							; you stay in video and can go to exit by pressing a key
 
         mov eax, 4c00h                  ; AH = 4Ch - Exit To DOS
         int 21h                         ; DOS INT 21h
