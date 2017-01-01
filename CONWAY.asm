@@ -252,8 +252,11 @@ keepAlive	equ 2
 
 						; the result is returned in eax, edx (eax contains the quotient -> y coordinate, edx contains the remainder
 						; -> restult of mod) it's returned that way by div, no need to change it.
+		
 		pop ecx 
 		pop ebx 
+
+		; we don't pop eax and edx, they are needed to pass the coordinates
 
 		mov esp, ebp
 		pop ebp 
@@ -357,6 +360,8 @@ keepAlive	equ 2
 		push ebp
 		mov ebp, esp
 
+		; no need to push and pop eax, eax is used to return the size of the array 
+
 		mov eax, [ebp+8]
 
 		cmp eax, vidBufferAdress
@@ -398,7 +403,9 @@ keepAlive	equ 2
 		PROC SetWidth 
 
 		push ebp
-		mov ebp, esp
+		mov ebp, esp 
+
+		; no need to push and pop eax, it is used to return the width of the grid 
 
 		mov eax, [ebp+8]
 
@@ -442,6 +449,8 @@ keepAlive	equ 2
 
 		push ebp
 		mov ebp, esp
+
+		; no need to push and pop eax, it is used to return the height of the grid 
 
 		mov eax, [ebp+8]
 
@@ -491,9 +500,10 @@ keepAlive	equ 2
 		mov ebp, esp
 
 		push ebx
+		push esi 
 
-		mov eax, [ebp+8]
-		mov esi, [ebp+12]
+		mov eax, [ebp+8]		; the index 
+		mov esi, [ebp+12]		; the array where the length of it is needed 
 
 		push eax 	; save the given index 
 
@@ -508,7 +518,7 @@ keepAlive	equ 2
 		jge @@outBounds	; index is from 0 - length-1 if it is equal to the length or larger -> out of bounds
 
 		cmp eax, 0		
-		jl @@outBounds
+		jl @@outBounds	; if the index is smaller than 0, you are out of bounds on the left side of the array 
 
 		jmp @@inBounds 	; If you reach here, your index is in bounds of the array 
 
@@ -522,14 +532,14 @@ keepAlive	equ 2
 
 		@@stop:
 
+		pop esi 
 		pop ebx 
+
 		mov esp, ebp
 		pop ebp
 
 		ret
 		ENDP InBounds
-
-
 
 ; Author: Asma Oualmakran
 ; Function: GetValue 
@@ -554,8 +564,8 @@ keepAlive	equ 2
 		push edx 
 		push esi 
 
-		mov edx, [ebp+8]
-		mov esi, [ebp+12]
+		mov edx, [ebp+8]		; the index 
+		mov esi, [ebp+12]		; the array where the element is needed of 
 
 		push esi
 		push edx 
@@ -603,6 +613,7 @@ keepAlive	equ 2
  		; otherwise it is to large to be set in the byte array
 		push ebp 
 		mov ebp, esp 
+
 		push eax ; containts the value to be set.
 		push edx ; containts the index. 
 		push edi ; containts the adres of the array 
@@ -624,7 +635,7 @@ keepAlive	equ 2
 		add esp, 8 
 
 		cmp eax, 0 
-		je @@stop
+		je @@stop 		; if the condition is meeted, the element is out of array bounds 
 
 		pop eax 		; restore the value of eax 
 
@@ -658,7 +669,6 @@ keepAlive	equ 2
 		push ebp 
 		mov ebp, esp 
 
-		push eax 
 		push edx 
 		push esi 
 
@@ -947,12 +957,12 @@ keepAlive	equ 2
 		push ebp
 		mov ebp, esp 
 
-		push ax 
+		push eax 
 		
 		mov ax , 13h ; specify AH=0 (set video mode) , AL=13h (320x200 )
 		int 10h 	 ; call VGA BIOS
 
-		pop ax 
+		pop eax 
 
 		mov esp, ebp 
 		pop ebp
@@ -971,12 +981,12 @@ keepAlive	equ 2
 		push ebp 
 		mov ebp, esp 
 
-		push ax 
+		push eax 
 
 		mov ax , 03h ; specify AH=0 (set text mode) , AL=3h (text)
 		int 10h 	 ; call VGA BIOS
 
-		pop ax 
+		pop eax 
 
 		mov esp, ebp 
 		pop ebp 
@@ -994,14 +1004,13 @@ keepAlive	equ 2
 
 		push ebp 
 		mov ebp, esp 
+
 		push eax 
 		push ecx
 		push edi 
 
 		call InitVideo	; open the video mode 
 		
-	;	mov ah, 0
-	;	mov al, white		; place the color in al 
 		mov eax, dead 		; at initialisation all cells are dead  
 		mov ecx, vidBuffSize  ; works as a counter
 		mov edi, vidBufferAdress ; the index where stosb needs to start 
@@ -1027,6 +1036,7 @@ keepAlive	equ 2
 
 		push ebp 
 		mov ebp, esp 
+
 		push eax 
 		push ecx 
 		push edi 
@@ -1038,10 +1048,10 @@ keepAlive	equ 2
 		mov ecx, eax 
 		mov eax, 0
 
-		lea edi,  gridAdres	; we only need to set ecx once 
+		lea edi, gridAdres	; we only need to set ecx once 
 		rep stosb 				; _gridArray and _gridArray2 have the same size 
 
-		lea edi, gridAdres2
+		lea edi, gridAdres2 	; we use the macro's to get the adresses
 		rep stosb
 
 		pop edi 
@@ -1065,7 +1075,12 @@ keepAlive	equ 2
 		push ebp 
 		mov ebp, esp
 
-		mov [_extinct], 0
+		push eax 
+
+		mov eax, 0
+		mov [_extinct], eax 
+
+		pop eax 
 
 		mov esp, ebp
 		pop ebp
@@ -1127,6 +1142,7 @@ keepAlive	equ 2
 		push eax 
 		push ebx 
 		push ecx 
+		push edx 
 		push edi 
 
 		mov eax, [ebp+8]	; color 
@@ -1136,9 +1152,10 @@ keepAlive	equ 2
 
 		add edi, ebx
 
-		rep stosb 
+		rep stosb
 
 		pop edi 
+		pop edx 
 		pop ecx 
 		pop ebx 
 		pop eax 
@@ -1147,7 +1164,7 @@ keepAlive	equ 2
 		pop ebp  
 
 		ret 
-		ENDP DrawLine
+		ENDP DrawLine  
 
 
 
@@ -1189,10 +1206,10 @@ keepAlive	equ 2
 
 		push esi 
 		push eax 
-		call GetValue
+		call GetValue		 
 		add esp, 8
 
-		mov edx, eax 		; store the value from the array (color)		
+		mov edx, eax 		; store the value from the array (color)
 
 		pop eax 			; restore the original index  
 
@@ -1201,18 +1218,18 @@ keepAlive	equ 2
 		push eax 
 		call CalcDispl		; eax contains the displaced coordinate
 		add esp, 12 		; in the bufferarray
-		; we need this index to be able to draw the block on the right location in the window
+							; we need this index to be able to draw the block on the right location in the window
 
 		mov ebx, blockHeight 	; place the height of the block in ebx 
 
-		mov ecx, 0  
+		mov ecx, 0			; ECX current row counter, 0 -> block height  
 
 		@@Loop:
 
-		push ecx 
+		push ecx 			; current row counter
 		push edx 			; need to save the color, otherwise it will be altered by
 							; GetCoordinates
-		cmp ecx, ebx 
+		cmp ecx, ebx 		; current row =? blockheight
 		je @@Stop 			; je not jl it starts from 0 to blockheight - 1 
 							; if jl is used, it will execute one iteration to much  
 		cmp ecx, 0 
@@ -1232,7 +1249,6 @@ keepAlive	equ 2
 		add esp, 12 
 		; we don't need to calculate the displacement index again 
 		; that's why we use the normal indexation 
-
 
 		@@ecxNotAltered:
 
@@ -1264,7 +1280,91 @@ keepAlive	equ 2
 		pop ebp
 
 		ret 
-		ENDP DrawSquare
+		ENDP DrawSquare 
+
+
+proc DrawSquaredLine
+
+	push ebp 
+	mov ebp, esp
+
+	push esi
+	push edi
+	push eax
+
+	mov esi, offset _gridArray
+ 	mov edi, offset _bufferArray
+ 	mov eax, 0 
+
+ 	push edi 
+ 	push esi 
+ 	push eax 
+ 	call DrawSquare 
+ 	pop eax
+ 	pop esi
+ 	pop edi 
+
+
+ ;	mov esi, offset _gridArray
+ ;	mov edi, offset _bufferArray
+ 	mov eax, 2 
+
+ 	push edi 
+ 	push esi 
+ 	push eax 
+ 	call DrawSquare
+ 	add esp, 12
+
+ 	
+
+ 	pop eax
+ 	pop edi
+ 	pop esi
+
+	mov esp, ebp 
+	pop ebp
+	ret
+ENDP DrawSquaredLine
+
+proc DrawSquaredLine2
+
+	push ebp 
+	mov ebp, esp
+
+	push esi
+	push edi
+	push eax
+
+	mov esi, offset _gridArray
+ 	mov edi, offset _bufferArray
+ 	mov eax, 11 
+
+ 	push edi 
+ 	push esi 
+ 	push eax 
+ 	call DrawSquare
+ 	add esp, 12
+
+ ;	mov esi, offset _gridArray
+ ;	mov edi, offset _bufferArray
+ 	mov eax, 13 
+
+ 	push edi 
+ 	push esi 
+ 	push eax 
+ 	call DrawSquare
+ 	add esp, 12
+
+ 	
+
+ 	pop eax
+ 	pop edi
+ 	pop esi
+
+	mov esp, ebp 
+	pop ebp
+	ret
+ENDP DrawSquaredLine2
 
 ; Author: Asma Oualmakran
 ; Function: DrawGrid 
@@ -1273,6 +1373,10 @@ keepAlive	equ 2
 		; Type: Array adres
 		; Use: The array that represents the grid.  
 		; Constraint: N/a 
+	; bufferArray: 
+		; Type: Array adres 
+		; Use: The buffer array. 
+		; Constraint: N/a
 ; Use: Draw the grid. 
 ; Returns: N/a 
 
@@ -1289,42 +1393,31 @@ keepAlive	equ 2
 		push edi 
 
 		mov esi, [ebp+8]		; the array containing the grid that needs drawing
-
-		mov edi, offset _bufferArray 
-
-		push esi 
-		call SetArraySize
-		add esp, 4 
-
-		mov ebx, eax 	; place the length of the array in ebx 
+		mov edi, [ebp+12]		; the bufferArray
 
 		mov ecx, 0
 
-	;	@@Loop:
-		cmp ecx, ebp 	; is ecx = the length of the array, you are at the end 
-		je @@Stop
+		@@Loop: 
+		push esi 
+		push ecx 
+		call InBounds
+		add esp, 8 
+
+		cmp eax, 0 				; if the returned value is 0, you are out of bounds of the array 
+		je @@Stop 				; --> end of your array 
 
 		push edi 
 		push esi 
 		push ecx 
-		call DrawSquare	; you write the block into the buffer (everything is taking care of by drawSquare, offset, color ect)
-		add esp, 12 
+		call DrawSquare
+		pop ecx 
+		pop esi 
+		pop edi 
 
-		inc ecx 
+		inc ecx
+		jmp @@Loop 
 
-	;	jmp @@Loop
-
-		; afther you're done transfering the data of the blocks into the buffer 
-		; you can copy the result into the videobuffer
-
-	;	cld 
-	;	mov esi, offset _bufferArray
-	;	mov edi, 0a0000h
-	;	mov ecx, 64000 / 4
-	;	rep movsd 
-
-
-		@@Stop: 
+		@@Stop:
 
 		pop edi 
 		pop esi
@@ -1340,9 +1433,34 @@ keepAlive	equ 2
 		ENDP DrawGrid
 
 ; Author: Asma Oualmakran
-; Procedure: Buffer 
-; Parameters
+; Procedure: VidoeUpade 
+; Parameters: 
 	; 
+
+	proc VideoUpdate
+
+		push ebp 
+		mov ebp, esp
+
+		push esi
+		push edi
+		push ecx
+
+		mov esi, [ebp+8]
+		mov edi, [ebp+12]
+
+		cld 
+ 		mov ecx, 64000/4
+ 		rep movsd
+
+ 		pop ecx
+ 		pop edi
+ 		pop esi
+
+		mov esp, ebp 
+		pop ebp
+		ret
+		ENDP VideoUpdate
 
 	main:
 
@@ -1355,7 +1473,55 @@ keepAlive	equ 2
         mov ax, 03h						; set dos in text modus 
         int 10h
 
- 
+ 		call InitVideo
+ 		call InitWindow
+;
+; 		mov esi, offset _gridArray
+; 		mov edi, offset _bufferArray
+; 		mov eax, 0 
+;
+; 		push edi 
+; 		push esi 
+; 		push eax 
+; 		call DrawSquare
+; 		add esp, 12
+;
+; 		call VideoUpdate
+;
+; 		mov ah, 00h 
+; 		int 16h
+;
+;
+; 		mov eax, 99
+;
+; 		push edi 
+; 		push esi 
+; 		push eax 
+; 		call DrawSquare
+; 		add esp, 12 
+		
+		mov esi, offset _gridArray
+		mov edi, offset _bufferArray
+
+
+		push edi 
+		push esi
+		call DrawGrid
+		add esp, 8
+
+		mov esi, offset _bufferArray
+		mov edi, 0a0000h
+
+		push edi 
+		push esi 
+ 		call VideoUpdate
+ 		add esp, 8
+; 		cld 
+; 		mov esi, offset _bufferArray
+; 		mov edi, 0a0000h
+; 		mov ecx, 64000/4
+; 		rep movsd
+
 
     	;Pause 
         mov ah,00h 						; these two lines make the code stop here 
