@@ -39,6 +39,7 @@ bufferArray 	equ [_bufferArray]	; the adres of the bufferarray for dual bufferin
 ; Macro's for the adresses of the grids
 gridAdres 		equ [_gridArray]
 gridAdres2		equ [_gridArray2]
+endSymbol 		equ '='
 
 ;Color Macro's 
 ;colour pallet starts from 0 to 15
@@ -59,10 +60,12 @@ lila 		equ 13
 yellow 		equ 14 
 white 		equ 15
 
-alive 		equ red 
-dead		equ black
-resurrect 	equ 3
-keepAlive	equ 2
+
+background  equ lightGray	; the color of the background
+alive 		equ red 		; color of a living cell 
+dead		equ black		; color of a dead cell 
+resurrect 	equ 3			; the number of living neighbouring cells needed to resurrect a cell 
+keepAlive	equ 2			; number of living neighbouring cells to keep a cell alive 
 ;---------------------------------------
 
 ; Author: http://stackoverflow.com/questions/4244624/print-integer-to-console-in-x86-assembly
@@ -479,6 +482,56 @@ keepAlive	equ 2
 		ret 
 		ENDP SetHeight
 
+; Author: Asma Oualmakran
+; Function: InGrid 
+; Parameters: 
+	; y-coordinate: 
+		; Type: Intiger
+		; Use: The y-coordinate of the cell
+		; Constraint: N/a 
+	; x-coordinate
+		; Type: Intiger
+		; Use: The x-coordinate of the cell 
+		; Constraint: N/a
+	; Array 
+		; Type: Adress 
+		; Use: The adres of the array used to represent the grid. 
+		; Constraint: N/a 
+; Returns: 0 if the cell is out of bounds, 1 if it is in bounds
+
+		PROC InGrid 
+
+		push ebp 
+		mov ebp, esp 
+
+		push ebx 
+		push esi
+
+		mov eax, [ebp+8]		; y-coordinate
+		mov ebx, [ebp+12]		; x-coordinate
+		mov esi, [ebp+16]		; array
+
+		push esi 
+		push ebx 
+		push eax 
+		call Index 			; calculate the index with the coordinates
+		add esp, 12 		; the index of the element is eax
+
+
+		push esi 			; check if eax is in bounds of the array 
+		push eax 
+		call InBounds
+		add esp, 8		 
+
+		pop esi 
+		pop ebx 
+
+		mov esp, ebp 
+		pop ebp
+
+		ret 
+		ENDP InGrid
+
 
 ; Author: Asma Oualmakran 
 ; Function: InBounds 
@@ -715,6 +768,7 @@ keepAlive	equ 2
 		ret
 		ENDP GenerationExtinct
 
+
 ; Author: Asma Oualmakran
 ; Function: NextGeneration
 ; Parameters: 
@@ -734,209 +788,76 @@ keepAlive	equ 2
 		push ebp 
 		mov ebp, esp 
 
-		push eax 
-		push ecx 	; will be used as counter 
-		push edx 	; will contain the index of the array
-		push esi 	; the source array 
-		push edi 	; the Destination array (we'll write to this array)
+		push eax
+		push ebx  
+		push ecx 
+		push edx 
+		push esi 
+		push edi 
 
-		mov esi, [ebp+8]
-		mov edi, [ebp+12]
+		mov esi, [ebp+8]		; contains the original grid  
+		mov edi, [ebp+12]		; will contain the transformed grid 
+
+		mov ecx, 0 				; we start at the beginning of the original grid -> index 0 
+
+		; both arrays need to have the same size 
 
 		push esi 
-		call SetArraySize
+		call SetArraySize	; determine the size of the source array 
 		add esp, 4 
 
-		mov edx, 0 
+		mov edx ,eax 		; move it to another register to be able to compare 
+							; the two sizes 
+		push edi 	
+		call SetArraySize 	; determine the size of the destination array, this 
+		add esp, 4 			; array wil contain the transformation 
 
-  		@@Loop:
+		cmp eax, edx 		; if they sizes are not equal, you don't start the iteration 
+		jne @@Stop 			; and jump to the end. 
 
-  		mov ecx, 0			; reinitialize the counter  
 
-  		cmp edx, eax 		; if the index = the length of the array 
-  							; you are at the end of the array. 
-  		
-  		je @@Stop 			; if you are at the end, you jump to @@Stop 
-  							; if we jump to the end, we don't need to save
-  							; the index and the size 
-  		push eax 			; save the size of the array 
-  		push edx 			; save the index 
+		@@Loop: 
 
-  		push esi 
-  		push edx 
-  		call GetCoordinates	; calculate the coordinates of the element
-  		add esp, 8 
+		push ecx 				; save the main counter -> index array 
 
-  		push eax 			; save the y coordinate
-  		push edx 			; save the x coordinate
+		push esi 
+		push ecx 
+		call InBounds
+		add esp, 8 
 
-  		@@CheckLeft:
-  		; no need to restore the registers, they are not alterd yet
-  		cmp edx, dead
-  		je @@CheckRight
+		cmp eax, 0 
+		je @@Stop 				; when ecx = gridSize you know you copletly ran through the array and you stop 
 
-  		dec edx 			; the left neighbour is at x-1
+		mov ecx, 0 				; inside the loop we use ecx to count the living neighbouring cells 
 
-  		push esi 
-  		push edx 
-  		push eax 
-  		call Index 			; Calculate the index of the left neighbour
-  		add esp, 12
+		push esi 				; we need the coordinates of the cell, 
+		push ecx 				; in order to determine the location of the
+		call GetCoordinates		; neighbouring cells (we need the value of the neigbouring cells)
+		add esp, 8				; eax contains the y coordinate edx contains the x coordinate
 
-  		push eax 
-  		call GetValue		; get the value of the neighbour
-  		add esp, 4  
+		@@CheckLeft: 
 
-  		cmp eax, dead 
-  		je @@CheckRight
+		push edx 				; we are going to alter the value of edx, instead of 
+								; compensate it by an extra addition, we save the value 
 
-  		inc ecx 
+		@@CheckRight:
 
-  		@@CheckRight:
+		pop edx  				; restore the x coordinate of the cell.  
 
-  		pop edx 			; restore the x coordinate
-  		pop eax 			; restore the y coordinate
+		@@CheckUnder: 
 
-  		push eax 			; save the y coordinate (before it's altered)
-  		push edx 			; save the x coordinate
-  		; we need to save it again, otherwise we'll lose the values 
+		@@CheckAbove: 
 
-  		inc edx 			; the right neighbour is at x+1
 
-  		push esi 
-  		push edx 
-  		push eax 
-  		call Index
-  		add esp, 12
+		jmp @@Loop 
 
-  		push eax 
-  		call GetValue
-  		add esp, 4
-
-  		cmp eax, dead 
-  		je @@CheckAbove
-
-  		inc ecx 
-
-  		@@CheckAbove:
-
-  		pop edx 
-  		pop eax 
-
-  		push eax 
-  		push edx 
-
-  		dec eax  			; the neighbour above is at y-1
-
-  		push esi 
-  		push edx 
-  		push eax 
-  		call Index
-  		add esp, 12
-
-  		push eax 
-  		call GetValue
-  		add esp, 4 
-
-  		cmp eax, dead 
-  		je @@CheckUnder
-
-  		inc ecx 
-
-  		@@CheckUnder:
-
-  		pop edx 	
-  		pop eax 	
-
-  		push eax 
-  		push edx 
-
-  		inc eax 	; the neighbour under is at y+1
-
-  		push esi 
-  		push edx
-  		push eax 
-  		call Index
-
-  		push eax 
-  		call GetValue
-  		add esp, 4 
-
-  		cmp eax, dead  
-  		je @@Control
-
-  		inc ecx 
-
-  		@@Control:
-
-  		pop edx 
-  		pop eax 
-
-  		push esi 
-  		push edx 
-  		push eax 
-  		call Index
-  		add esp, 12 
-
-  		push esi 
-  		push eax 
-  		call GetValue
-  		add esp, 8 
-
-  		cmp eax, alive 		; if the cell is alive, you jump tot @@KeepAlive to check if the cell lives in the next generation
-  		je @@KeepAlive
-
-  		cmp ecx, resurrect 	; if ecx = ressurect, the cell will be set to alive 
-  		je @@Resurrect 		
-
-  		@@Kill:				
-
-  		mov eax, dead 
-
-  		push edi 
-  		push edx 
-  		push eax 
-  		call SetValue
-  		add esp, 12
-
-  		jmp @@SetIter
-
-  		@@Resurrect:
-
-  		mov eax, alive 
-
-  		push edi 
-  		push edx 
-  		push eax 
-  		call SetValue
-  		add esp, 12 
-
-  		jmp @@SetIter
-
-  		@@KeepAlive:
-  		cmp ecx, keepAlive 	; if the cell is alive, and the #living neighbours = 2 or 3 you jump to ressurect  
-  		je @@Resurrect 		; and set the cell to alive 
-
-  		cmp ecx, resurrect	; if the cell is alive and #living neighbours = 3 you jump to ressurect
-  		je @@Resurrect
-
-  		jmp @@Kill			; if the number of living neighbours is less than 2 or greater than 3 
-  							; you kill the cell 
-  							
-  		@@SetIter: 			; set everything for the next iteration 
-
-  		pop edx 			; restore the value of the index 
-  		inc edx 			; inc the index -> next cell 
-  		pop eax 			; restore the length of the array 
-
-  		jmp @@Loop 
-
-  		@@Stop:
+		@@Stop: 
 
 		pop edi 
-		pop esi
+		pop esi 
 		pop edx 
 		pop ecx 
+		pop ebx 
 		pop eax 
 
 		mov esp, ebp
@@ -995,10 +916,49 @@ keepAlive	equ 2
 		ENDP ExitVideo
 
 ; Author: Asma Oualmakran
+; Procedure: VidoeUpade 
+; Parameters: 
+	; buffer: 
+		; Type: Array adres 
+		; Use: The array that is used as buffer 
+		; Constraint: N/a 
+	; videobuffer: 
+		; Type: Array adres 
+		; Use: The video buffer 
+		; Constraint: N/a 
+; Returns: N/a 
+; Use: Update the window.
+
+	proc VideoUpdate
+
+		push ebp 
+		mov ebp, esp
+
+		push esi
+		push edi
+		push ecx
+
+		mov esi, [ebp+8]
+		mov edi, [ebp+12]
+
+		cld 
+ 		mov ecx, vidBuffSize/4
+ 		rep movsd
+
+ 		pop ecx
+ 		pop edi
+ 		pop esi
+
+		mov esp, ebp 
+		pop ebp
+		ret
+		ENDP VideoUpdate
+
+; Author: Asma Oualmakran
 ; Function: InitWindow
 ; Parameters: N/a 
 ; Returns: N/a 
-; Use: Initialize the window, make the background one colour 
+; Use: Initialize the window, make the background one colour. 
 
 		PROC InitWindow 
 
@@ -1011,7 +971,7 @@ keepAlive	equ 2
 
 		call InitVideo	; open the video mode 
 		
-		mov eax, dead 		; at initialisation all cells are dead  
+		mov eax, background		
 		mov ecx, vidBuffSize  ; works as a counter
 		mov edi, vidBufferAdress ; the index where stosb needs to start 
 		rep stosb	; loops over the video buffer to set every pixel to a value 
@@ -1030,7 +990,7 @@ keepAlive	equ 2
 ; Function: InitArray 
 ; Parameters: N/a 
 ; Retruns: N/a 
-; Use: Initialize the grid array's, fill them with 0. Tis is the initial state of the grid 
+; Use: Initialize the grid array's, fill them with 0. Tis is the initial state of the grid. 
 
 		PROC InitArray
 
@@ -1112,9 +1072,86 @@ keepAlive	equ 2
 		ENDP Reset 
 
 ; Author: Asma Oualmakran
+; Function: SetStartState 
+; Parameters: 
+	; Input Array: 
+		; Type: Array adres 
+		; Use: An array containing indexes of the living cells. 
+		; Constraint: The length of the array must be smaller or equal to the used grid array. 
+	; Grid Array: 
+		; Type: Array adres 
+		; Use: The array representing the grid. 
+		; Constraint: N/a 
+; Returns: N/a 
+; Use: Set the cells on the indexes containded in the input array on "alive". 
+
+		PROC SetStartState
+
+		push ebp 
+		mov ebp, esp 
+
+		push eax 
+		push ecx 
+		push edx 
+
+		mov esi, [ebp+8]	; the array containing the indexes for the living cells 
+		mov edi, [ebp+12]	; the array containing the living cells 
+
+		mov ecx, 0 			; ecx will act as a counter/ index of the input array 
+							; we use it to loop over the array 
+		@@Loop: 
+
+		push esi 
+		push ecx 
+		call GetValue		; get the value of the element on index ecx from the input array 
+		add esp, 8 			; eax will contain the value of the element 
+
+		cmp eax, endSymbol	; check if the element equals the endSymbol to determine if we reached the end
+							; of the array 
+		je @@Stop
+
+		push eax 			; save the index that was contained by the input array 
+
+		push edi 
+		push eax 
+		call InBounds 		; check if eax (index retreived from input array)
+		add esp, 8 			; is in bounds of the array 
+
+		cmp eax, 0 
+		je @@Next 			; If that index is out of bounds, you go to the next element
+							; of the array
+		pop eax 			; if it is in bounds, you restore the value of eax -> the index 
+
+		mov edx, alive 		; place the value alive, it needs to be set in the array 
+
+		push edi 			; the array that represents the grid 
+		push eax 			; the index where the element needs to be set 
+		push edx 			; the value that needs to be put in the array -> alive 
+		call SetValue
+		add esp, 12 
+
+		@@Next: 
+
+		inc ecx 
+
+		jmp @@Loop 
+
+		@@Stop: 
+
+		pop edx 
+		pop ecx 
+		pop eax 
+
+		mov esp, ebp 
+		pop ebp 
+
+		ret 
+		ENDP SetStartState
+
+
+; Author: Asma Oualmakran
 ; Function: DrawLine 
 ; Parameters: 
-	
 	; Color:
 		; Type: Intiger
 		; Use: The color of the pixel. 
@@ -1283,89 +1320,6 @@ keepAlive	equ 2
 		ENDP DrawSquare 
 
 
-proc DrawSquaredLine
-
-	push ebp 
-	mov ebp, esp
-
-	push esi
-	push edi
-	push eax
-
-	mov esi, offset _gridArray
- 	mov edi, offset _bufferArray
- 	mov eax, 0 
-
- 	push edi 
- 	push esi 
- 	push eax 
- 	call DrawSquare 
- 	pop eax
- 	pop esi
- 	pop edi 
-
-
- ;	mov esi, offset _gridArray
- ;	mov edi, offset _bufferArray
- 	mov eax, 2 
-
- 	push edi 
- 	push esi 
- 	push eax 
- 	call DrawSquare
- 	add esp, 12
-
- 	
-
- 	pop eax
- 	pop edi
- 	pop esi
-
-	mov esp, ebp 
-	pop ebp
-	ret
-ENDP DrawSquaredLine
-
-proc DrawSquaredLine2
-
-	push ebp 
-	mov ebp, esp
-
-	push esi
-	push edi
-	push eax
-
-	mov esi, offset _gridArray
- 	mov edi, offset _bufferArray
- 	mov eax, 11 
-
- 	push edi 
- 	push esi 
- 	push eax 
- 	call DrawSquare
- 	add esp, 12
-
- ;	mov esi, offset _gridArray
- ;	mov edi, offset _bufferArray
- 	mov eax, 13 
-
- 	push edi 
- 	push esi 
- 	push eax 
- 	call DrawSquare
- 	add esp, 12
-
- 	
-
- 	pop eax
- 	pop edi
- 	pop esi
-
-	mov esp, ebp 
-	pop ebp
-	ret
-ENDP DrawSquaredLine2
-
 ; Author: Asma Oualmakran
 ; Function: DrawGrid 
 ; Parameters: 
@@ -1432,35 +1386,7 @@ ENDP DrawSquaredLine2
 		ret 
 		ENDP DrawGrid
 
-; Author: Asma Oualmakran
-; Procedure: VidoeUpade 
-; Parameters: 
-	; 
 
-	proc VideoUpdate
-
-		push ebp 
-		mov ebp, esp
-
-		push esi
-		push edi
-		push ecx
-
-		mov esi, [ebp+8]
-		mov edi, [ebp+12]
-
-		cld 
- 		mov ecx, 64000/4
- 		rep movsd
-
- 		pop ecx
- 		pop edi
- 		pop esi
-
-		mov esp, ebp 
-		pop ebp
-		ret
-		ENDP VideoUpdate
 
 	main:
 
@@ -1475,31 +1401,15 @@ ENDP DrawSquaredLine2
 
  		call InitVideo
  		call InitWindow
-;
-; 		mov esi, offset _gridArray
-; 		mov edi, offset _bufferArray
-; 		mov eax, 0 
-;
-; 		push edi 
-; 		push esi 
-; 		push eax 
-; 		call DrawSquare
-; 		add esp, 12
-;
-; 		call VideoUpdate
-;
-; 		mov ah, 00h 
-; 		int 16h
-;
-;
-; 		mov eax, 99
-;
-; 		push edi 
-; 		push esi 
-; 		push eax 
-; 		call DrawSquare
-; 		add esp, 12 
-		
+
+ 		mov esi, offset _start
+ 		mov edi, offset _gridArray
+
+ 		push edi 
+ 		push esi 
+ 		call SetStartState
+ 		add esp, 8 
+
 		mov esi, offset _gridArray
 		mov edi, offset _bufferArray
 
@@ -1510,17 +1420,13 @@ ENDP DrawSquaredLine2
 		add esp, 8
 
 		mov esi, offset _bufferArray
-		mov edi, 0a0000h
+		mov edi, vidBufferAdress
 
 		push edi 
 		push esi 
- 		call VideoUpdate
- 		add esp, 8
-; 		cld 
-; 		mov esi, offset _bufferArray
-; 		mov edi, 0a0000h
-; 		mov ecx, 64000/4
-; 		rep movsd
+		call VideoUpdate
+		add esp, 8
+		
 
 
     	;Pause 
@@ -1539,15 +1445,21 @@ ENDP DrawSquaredLine2
 DATASEG
 
 	; Your data comes here
-	_gridArray db gridSize dup (green)	; dd -> 32-bit
-									; db -> 8-bit, byte string
-	_gridArray2 db gridSize dup (0)	; second array to be able ;to compare the old data
-	_generation dd 0 				; het tellen van generaties dd -> een intiger of floating point getal 
-	_extinct 	dd 25				; when the grid is extinct, this variable wil be 1
-	_bufferArray db vidBuffSize dup (?) ; the buffer for the videobuffer
+	_gridArray db gridSize dup (dead)	; dd -> 32-bit
+										; db -> 8-bit, byte string
+	_gridArray2 db gridSize dup (dead)	; second array to be able ;to compare the old data
 
+	_generation dd 0 					; het tellen van generaties dd -> een intiger of floating point getal 
+	_extinct 	dd 0					; when the grid is extinct, this variable wil be 1
 
-	; errors and information strings
+	_bufferArray db vidBuffSize dup (background) ; the buffer for the videobuffer
+									; we need to fill it with the backgroundcolor otherwise the background
+									; becomes black 
+	_start db 0, 1, 10, 20, 5, 19, 66, 80, 99, 200, endSymbol ; the indexes that need to contain linving cells 
+												; '=' is the end symbol this is needed because we 
+												; don't know the size of the array 
+
+	; errors and information strings for debugging 
 	_msg1 db 'equal 1', 10, 13, '$'
 	_msg0 db 'equal 0', 10, 13, '$'
 	_msgS db 'Index is to small', 10, 13, '$'
@@ -1558,4 +1470,4 @@ DATASEG
 ;±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±?
 STACK 1000h
 
-END main
+END main 
