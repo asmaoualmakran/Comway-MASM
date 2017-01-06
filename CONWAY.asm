@@ -768,6 +768,102 @@ keepAlive	equ 2			; number of living neighbouring cells to keep a cell alive
 		ret
 		ENDP GenerationExtinct
 
+; Author: Asma Oualmakran
+; Function: IsAlive
+; Parameters: 
+	; y-coordinate: 
+		; Type: Intiger 
+		; Use: The y-coordinate of the cell who's state is needed. 
+		; Constraint: N/a 
+	; x-coordinate: 
+		; Type: Intiger
+		; Use: The x-coordinate of the cell who's state is needen. 
+		; Constraint: N/a 
+	; gridArray: 
+		; Type: ArrayAdres
+		; Use: The array that represents the grid. 
+		; Constraint: N/a 
+; Returns: It returns 0 when the cell is dead, and 1 when the cell is alive 
+; Use: Determine the state of a cell, based on coordinates. 
+
+		PROC IsAlive 
+
+		push ebp 
+		mov ebp, esp 
+
+		push ebx 
+		push edx 
+		push esi 
+
+		mov eax, [ebp+8]		; y-coordinate
+		mov edx, [ebp+12]		; x-coordinate
+		mov esi, [ebp+16]		; the gridAdres
+
+		cmp eax, 0 
+		jl @@Dead 
+
+		push eax 				; save the y coordinate, we need to compare it 
+								; with the height of the array
+		push esi 
+		call SetHeight
+		add esp, 4 
+
+		mov ebx, eax 			; mov the height to ebx to be able to compare 
+
+		pop eax 				; restore the y coordinate
+
+		cmp eax, ebx			 
+		jg @@Dead 				; if the value of the y coordinate  is greater than the 
+								; height, you are out of bounds of the grid. 
+		cmp edx, 0 				
+		jl @@Dead 				; if the value of the x coordinate is smaller than 0 
+								; you are out of bounds of the grid 
+		push eax 				; save the y coordinate
+
+		push esi 
+		call SetWidth			; get the width of the grid 
+		add esp, 4 
+
+		cmp edx, eax 
+		jg @@Dead 				; if the value of the x coordinate is greater than 
+								; the width of the grid, then you are out of bounds 
+		pop eax 				; restore the y coordinate
+
+		push esi 
+		push edx 
+		push eax 
+		call Index 				; calculate the index of the cell in the array 
+		add esp, 12 			; eax will contain the index 
+
+		push esi 
+		push eax 
+		call GetValue			; get the value located at the index in the array 
+		add esp, 8 
+
+		cmp eax, 0 			; compare the retreived value to the value of dead  
+		je @@Dead 				; if they are ecual -> jump to dead 
+
+		@@Alive: 				; if the cell is alive you retrun 1 
+
+		mov eax, 1
+		jmp @@Stop 
+
+		@@Dead: 
+
+		mov eax, 0 				; the cell is dead or out of bounds, you retrun 0
+
+		@@Stop: 
+
+		pop esi 
+		pop edx 
+		pop ebx 
+
+		mov esp, ebp 
+		pop ebp
+
+		ret 
+		ENDP IsAlive
+
 
 ; Author: Asma Oualmakran
 ; Function: NextGeneration
@@ -782,89 +878,127 @@ keepAlive	equ 2			; number of living neighbouring cells to keep a cell alive
 		; Use: 
 ; Returns: N/a 
 ; Use: Calculate the next generation/ new situation in the grid.
-
+	
 		PROC NextGeneration
 
 		push ebp 
 		mov ebp, esp 
 
-		push eax
-		push ebx  
+		push eax 
+		push ebx 
 		push ecx 
 		push edx 
 		push esi 
 		push edi 
 
-		mov esi, [ebp+8]		; contains the original grid  
-		mov edi, [ebp+12]		; will contain the transformed grid 
+		mov esi, [ebp+8]		; contains the original grid 
+		mov edi, [ebp+12] 		; will contain the transformed grid 
 
-		mov ecx, 0 				; we start at the beginning of the original grid -> index 0 
-
-		; both arrays need to have the same size 
 
 		push esi 
-		call SetArraySize	; determine the size of the source array 
-		add esp, 4 
+		call SetArraySize 		; get the size of the array to use is as a stop 
+		add esp, 4 				; condition 
 
-		mov edx ,eax 		; move it to another register to be able to compare 
-							; the two sizes 
-		push edi 	
-		call SetArraySize 	; determine the size of the destination array, this 
-		add esp, 4 			; array wil contain the transformation 
+		mov ebx, eax 			; move the length into ebx 
 
-		cmp eax, edx 		; if they sizes are not equal, you don't start the iteration 
-		jne @@Stop 			; and jump to the end. 
+		mov ecx, 0 				; Initialize ecx to use as index in the array 
 
+		@@MainLoop: 
 
-		@@Loop: 
+		push ebx 				; save the lenght of the array 
+		push ecx 				; save the index of the array 
 
-		push ecx 				; save the main counter -> index array 
+		cmp ecx, ebx 			; when ecx = lenght of the array you  
+		je @@Stop 				; are at the end 
 
 		push esi 
 		push ecx 
-		call InBounds
-		add esp, 8 
+		call GetCoordinates
+		add esp, 8
 
-		cmp eax, 0 
-		je @@Stop 				; when ecx = gridSize you know you copletly ran through the array and you stop 
+		push edx 
+		push eax 
 
-		mov ecx, 0 				; inside the loop we use ecx to count the living neighbouring cells 
+		cmp eax, 0 				; when y coordinate = 0 it has no above neighbouring cells 
+		je @@HigherBorder
 
-		push esi 				; we need the coordinates of the cell, 
-		push ecx 				; in order to determine the location of the
-		call GetCoordinates		; neighbouring cells (we need the value of the neigbouring cells)
-		add esp, 8				; eax contains the y coordinate edx contains the x coordinate
+		cmp eax, [gridHeight-1] ; when y coordinate = gridHeight-1 it has no neighbouring cells under it 
+		je @@LoweBorder
 
-		@@CheckLeft: 
+		jmp @@NoBorder
 
-		push edx 				; we are going to alter the value of edx, instead of 
-								; compensate it by an extra addition, we save the value 
+		@@HigherBorder: 		; cell has no neighbouring cells above
+		
+		inc eax 				;  y+1 is where we stop 
+		mov ebx, eax 			; save the stopcondition for outerloop
+		pop eax 				; y is where we start 
 
-		@@CheckRight:
+		jmp @@OuterLoop
 
-		pop edx  				; restore the x coordinate of the cell.  
+		@@LoweBorder: 			; cell has no neighbouring cells below
 
-		@@CheckUnder: 
+		pop eax 				; we stop at y 
+		mov ebx, eax 			; save the stopcondition for outerloop
+		dec eax  				; we start at y-1 
 
-		@@CheckAbove: 
+		jmp @@OuterLoop
 
+		@@NoBorder: 			; cell neighbouring cells above as below 
 
-		jmp @@Loop 
+		inc eax 				; we stop at y+1 
+		mov ebx, eax 			; save the stopcondition outerloop
+		pop eax 				; restore the current y coordinate
+		dec eax 				; we start at y-1 
+		
+		@@OuterLoop: 			; we loop over the y coordinates
+
+		push ebx  				; save the stopcondition for the outerloop  
+
+		cmp eax, ebx 			; check if eax > stopcondition, if so  
+		jg @@NextIteration		; we increment the main counter 
+
+	;	@@InnerLoop: 
+		
+		; code for the InnerLoop
+
+	;	jmp @@InnerLoop
+
+		@@NextY: 				; get the next y coordinate
+	
+		inc eax 				; go to the next y coordinate
+		pop ebx 				; restore the value of the stopcondition
+
+		jmp @@OuterLoop
+
+		@@NextIteration: 
+
+		pop ebx 				; pop the stopcondition for the outerloop 
+								; when we jump to this label the stopcondition of the outerloop is still on the stack 
+		pop edx 				; we need to pop edx 
+
+		pop ecx 				; restore the index of the array 
+		pop ebx 				; restore the length of the array  
+	
+		inc ecx 				; increment the index of the array 
+
+	
+		jmp @@MainLoop
 
 		@@Stop: 
 
-		pop edi 
-		pop esi 
-		pop edx 
-		pop ecx 
-		pop ebx 
 		pop eax 
+		pop ebx 
+		pop ecx 
+		pop edx 
+		pop esi 
+		pop edi 
 
-		mov esp, ebp
+		mov esp, ebp 
 		pop ebp 
 
 		ret 
 		ENDP NextGeneration
+
 
 
 ; Author: Asma Oualmakran
@@ -1399,35 +1533,108 @@ keepAlive	equ 2			; number of living neighbouring cells to keep a cell alive
         mov ax, 03h						; set dos in text modus 
         int 10h
 
- 		call InitVideo
- 		call InitWindow
-
- 		mov esi, offset _start
- 		mov edi, offset _gridArray
-
- 		push edi 
- 		push esi 
- 		call SetStartState
- 		add esp, 8 
+; 		call InitVideo     
+ ;		call InitWindow
+;
+; 	
+;		mov esi, offset _start 
+;		mov edi, offset _gridArray
+;
+;		push edi 
+;		push esi 
+;		call SetStartState
+;		add esp, 8 
 
 		mov esi, offset _gridArray
-		mov edi, offset _bufferArray
-
-
-		push edi 
-		push esi
-		call DrawGrid
-		add esp, 8
-
-		mov esi, offset _bufferArray
-		mov edi, vidBufferAdress
+		mov edi, offset _gridArray2
 
 		push edi 
 		push esi 
-		call VideoUpdate
-		add esp, 8
-		
+		call NextGeneration
+		add esp, 8 
 
+
+;		mov eax, 5 
+;
+;		push edi
+;		push eax
+;		call GetValue
+;		add esp, 8 
+;
+;		push eax 
+;		call PrintDigit
+;		add esp, 4 
+
+
+
+	;	mov esi, offset _gridArray2
+	;	mov edi, offset _bufferArray
+
+	;	push edi 
+	;	push esi 
+	;	call DrawGrid
+	;	add esp, 8 
+;
+;
+;;		mov esi, offset _bufferArray
+;		mov edi, 0a0000h
+;		call VideoUpdate
+;		add esp, 8 
+;
+		mov ah, 00h
+		int 16h 
+
+; 		mov esi, offset _start
+; 		mov edi, offset _gridArray
+
+; 		push edi 
+; 		push esi 
+; 		call SetStartState
+; 		add esp, 8 
+
+;		mov esi, offset _gridArray
+;		mov edi, offset _bufferArray
+
+
+;		push edi 
+;		push esi
+;		call DrawGrid
+;		add esp, 8
+
+;		mov esi, offset _bufferArray
+;		mov edi, vidBufferAdress
+
+;		push edi 
+;		push esi 
+;		call VideoUpdate
+;		add esp, 8
+		
+;		mov ah, 00h 
+;		int 16h 
+
+;	mov esi, offset _gridArray
+; 	mov edi, offset _gridArray2
+
+; 	push edi 
+; 	push esi 
+; 	call NextGeneration
+; 	add esp, 8 
+
+; 		mov esi, offset _gridArray2
+; 		mov edi, offset _bufferArray   
+
+; 		push edi 
+; 		push esi 
+; 		call DrawGrid
+; 		add esp, 8 
+
+; 		mov esi, offset _bufferArray 
+; 		mov edi, vidBufferAdress
+
+; 		push edi 
+; 		push esi 
+; 		call VideoUpdate
+; 		add esp, 8
 
     	;Pause 
         mov ah,00h 						; these two lines make the code stop here 
